@@ -53,32 +53,180 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   # if delta-WAD values don't exist, or if recalculation wanted, calculate those first
   # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_d_wad)
-  if(recalc | is.null(data@qsip[['wad_label']])) {
-    data <- calc_d_wad(data, filter=filter, correction=correction, offset_taxa=offset_taxa,
-                       separate_light=separate_light, separate_label=separate_label, recalc=TRUE)
+  if(recalc | is.null(data@qsip[['wad']])) {
+    data <- calc_wad(data, filter=filter)
   }
-  # extract WAD-heavy / WAD-light values and convert to S3 matrices
-  wh <- data@qsip[['wad_label']]
-  wl <- data@qsip[['wad_light']]
-  if(phyloseq::taxa_are_rows(data)) {
-    wh <- t(wh)
-    if(!is.null(dim(wl))) {
-      wl <- t(wl)
+  # extract WAD values and convert to S3 matrix
+  ft <- data@qsip[['wad']]
+  if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
+  n_taxa <- ncol(ft)
+  tax_names <- colnames(ft)
+  # split matrix by replicate, remove samples with NA for isotope trt, and keep track of light and heavy fractions
+  ft <- valid_samples(data, ft, 'iso')
+  iso_group <- ft[[2]]; ft <- ft[[1]]
+  # separate labeled and unlabeled samples
+  wh <- ft[as.numeric(iso_group$iso)==2,]
+  wl <- ft[as.numeric(iso_group$iso)==1,]
+  iso_h <- droplevels(iso_group[as.numeric(iso_group$iso)==2,])
+  iso_l <- droplevels(iso_group[as.numeric(iso_group$iso)==1,])
+  #
+  # ----------------
+  # Different methods of grouping data produce slightly different calculations
+  # These are coded as a 3-digit binary code based on 3 grouping criteria
+  #   - Replicate separated by group:  0/1 (no/yes)
+  #   - Labeled densities separate:   0/1
+  #   - Unlabeled densities separate: 0/1
+  # Example: 010 means calculate MW with separate labeled values, and averaged unlabeled values
+  # Example: 110 means calculate MW with separate labeled values, and unlabeled values averaged in each group
+  # ----------------
+  #
+  # if there is no replicate grouping
+  if(length(data@qsip@rep_group)==0) {
+    if(!separate_label) {
+      #
+      wh <- colMeans(wh, na.rm=TRUE)
+      wh[is.nan(wh)] <- NA
+      #
+      if(!separate_light) { # CODE 000
+        #
+        wl <- colMeans(wl, na.rm=TRUE)
+        wl[is.nan(wl)] <- NA
+        # calculate GC content of each taxa
+        gc <- (1 / 0.083506) * (wl - 1.646057)
+        # calculate mol. weight of taxa
+        mw_l <- (0.496 * gc) + 307.691
+        mw_h <- (((wh - wl)/wl) + 1) * mw_l
+        #
+      } else if(separate_light) { # CODE 001
+        #
+        # calculate GC content of each taxa
+        gc <- (1 / 0.083506) * (wl - 1.646057)
+        # calculate mol. weight of taxa
+        mw_l <- (0.496 * gc) + 307.691
+        mw_h <- sweep(wl, 2, wh, function(wL, wH) (((wH - wL)/wL) + 1))
+        mw_h <- mw_h * mw_l
+        #
+      }
+    } else if(separate_label) {
+      if(!separate_light) { # CODE 010
+        #
+        wl <- colMeans(wl, na.rm=T)
+        wl[is.nan(wl)] <- NA
+        #
+        # calculate GC content of each taxa
+        gc <- (1 / 0.083506) * (wl - 1.646057)
+        # calculate mol. weight of taxa
+        mw_l <- (0.496 * gc) + 307.691
+        mw_h <- sweep(wh, 2, wl, function(wH, wL) (((wH - wL)/wL) + 1))
+        mw_h <- sweep(mw_h, 2, mw_l, '*')
+        #
+      } else if(separate_light) { # CODE 011
+        #
+        # FUNCTION TO EVALUATE WHETHER/HOW INDIVIDUAL SAMPLES ALIGN FOR COMPARISON
+        # IF MISSING SAMPLE IS LABELED, REMOVE UNLABELED, IF MISSING SAMPLE IS UNLABELED, USE AVERAGE OF UNLABELED
+        # END RESULT SHOULD BE MATRICES OF SAME SIZE
+        #
+        # calculate GC content of each taxa
+        gc <- (1 / 0.083506) * (wl - 1.646057)
+        # calculate mol. weight of taxa
+        mw_l <- (0.496 * gc) + 307.691
+        mw_h <- (((wh - wl)/wl) + 1) * mw_l
+      }
     }
   }
-  tax_names <- colnames(wh)
-  # calculate GC content of each taxa (averaged across all groups of samples or not)
-  gc <- (1 / 0.083506) * (wl - 1.646057)
-  # calculate mol. weight of taxa without isotope
-  mw_l <- (0.496 * gc) + 307.691
-  # calculate mol. weight of taxa in labeled treatments
-  if(isTRUE(all.equal(dim(wh), dim(wl)))) {
-    mw_h <- (((wh - wl)/wl) + 1) * mw_l
-  } else {
-    mw_h <- sweep(wh, 2, wl, function(x, y) (((x - y)/y) + 1))
-    mw_h <- sweep(mw_h, 2, mw_l, '*')
+  # if there is replicate grouping
+  if(length(data@qsip@rep_group)==1) {
+    #
+    wh <- split_data(data, wh, iso_h$interaction, grouping_w_phylosip=FALSE, keep_names=1)
+    wl <- split_data(data, wl, iso_l$interaction, grouping_w_phylosip=FALSE, keep_names=1)
+    # calculate global (spanning all groups) unlabeled WADs
+    global_wl <- colMeans(wl, na.rm=TRUE)
+    global_wl[is.nan(global_wl)] <- NA
+    #
+    if(!separate_label) {
+      #
+      wh <- base::lapply(wh, colMeans, na.rm=TRUE)
+      wh <- base::lapply(wh, function(x) {x[is.nan(x)] <- NA; x})
+      #
+      if(!separate_light) { # CODE 100
+        #
+        wl <- base::lapply(wl, colMeans, na.rm=TRUE)
+        wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
+        #
+        # if(global_unlabel=FALSE) {
+        # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
+        # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
+        # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
+        # } else if(global_unlabel=TRUE) {
+        # wl <- base::lapply(wl, function(x) global_wl)
+        # }
+        #
+        wh <- do.call(rbind, wh)
+        wl <- do.call(rbind, wl)
+        # calculate GC content of each taxa
+        gc <- (1 / 0.083506) * (wl - 1.646057)
+        # calculate mol. weight of taxa
+        mw_l <- (0.496 * gc) + 307.691
+        mw_h <- (((wh - wl)/wl) + 1) * mw_l
+        #
+      } else if(separate_light) { # CODE 101
+        #
+        wh <- base::lapply(wh, colMeans, na.rm=TRUE)
+        wh <- base::lapply(wh, function(x) {x[is.nan(x)] <- NA; x})
+        #
+        # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
+        # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
+        # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
+        #
+        # calculate GC content of each taxa
+        gc <- base::lapply(wl, function(wL) (1 / 0.083506) * (wL - 1.646057))
+        # calculate mol. weight of taxa
+        mw_l <- base::lapply(gc, function(GC) (0.496 * GC) + 307.691)
+        mw_h <- base::Map(function(x, y) sweep(x, 2, y, function(wL, wH) (((wH - wL)/wL) + 1)),
+                          wl, wh)
+        mw_h <- base::Map('*', mw_h, mw_l)
+        #
+      }
+    } else if(separate_label) {
+      if(!separate_light) { # CODE 110
+        #
+        wl <- base::lapply(wl, colMeans, na.rm=TRUE)
+        wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
+        #
+        # if(global_unlabel=FALSE) {
+        # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
+        # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
+        # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
+        # } else if(global_unlabel=TRUE) {
+        # wl <- base::lapply(wl, function(x) global_wl)
+        # }
+        #
+        # calculate GC content of each taxa
+        gc <- base::lapply(wl, function(wL) (1 / 0.083506) * (wL - 1.646057))
+        # calculate mol. weight of taxa
+        mw_l <- base::lapply(gc, function(GC) (0.496 * GC) + 307.691)
+        mw_h <- base::Map(function(x, y) sweep(x, 2, y,  function(wH, wL) (((wH - wL)/wL) + 1)),
+                          wh, wl)
+        mw_h <- base::Map('*', mw_h, mw_l)
+        #
+      } else if(separate_light) { # CODE 111
+        #
+        # FUNCTION TO EVALUATE WHETHER/HOW INDIVIDUAL SAMPLES ALIGN FOR COMPARISON
+        # IF MISSING SAMPLE IS LABELED, REMOVE UNLABELED, IF MISSING SAMPLE IS UNLABELED, USE GROUP AVERAGE OF UNLABELED
+        # BUT IF GLOBAL_UNLABEL IS TRUE, USE GLOBAL AVERAGE
+        # END RESULT SHOULD BE MATRICES OF SAME SIZE
+        #
+        wh <- do.call(rbind, wh)
+        wl <- do.call(rbind, wl)
+        #
+        # calculate GC content of each taxa
+        gc <- (1 / 0.083506) * (wl - 1.646057)
+        # calculate mol. weight of taxa
+        mw_l <- (0.496 * gc) + 307.691
+        mw_h <- (((wh - wl)/wl) + 1) * mw_l
+      }
+    }
   }
-  # if(is.null(dim(data@qsip[['wad_light']]))) mw_l <- c(mw_l)
   # organize and add new data as S4 matrices
   data <- collate_results(data, mw_h, tax_names=tax_names, 'mw_label', sparse=TRUE)
   data <- collate_results(data, mw_l, tax_names=tax_names, 'mw_light', sparse=TRUE)
