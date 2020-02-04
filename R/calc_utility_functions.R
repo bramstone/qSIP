@@ -223,17 +223,25 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
   names(reps) <- c('replicate', 'replicate_num')
   reps <- merge(grouping, reps, all.x=TRUE)
   if(rep_group=TRUE) {
-    reps$replicate_num <- interaction(reps$iso, reps$replicate_num)
+    reps$replicate_num <- interaction(reps$grouping, reps$replicate_num)
   }
+  reps2 <- reps
   reps <- split(grouping, grouping$replicate_num)
   keep_groups <- !logical(length(reps))
   for(n in length(reps)) {
     n_light <- reps[[n]][as.numeric(reps[[n]]$iso==1),]
     n_label <- reps[[n]][as.numeric(reps[[n]]$iso==2),]
     if(n_light==0) {
-      # if missing unlabeled, use global averages
-      wl_av <- colMeans(wad_light, na.rm=T)
-      wl_av[is.nan(wl_av)] <- NA
+      if(rep_group=FALSE) {
+        # use global averages
+        wl_av <- colMeans(wad_light, na.rm=TRUE)
+        wl_av[is.nan(wl_av)] <- NA
+      } else {
+        # use group averages
+        group_n <- reps[[n]]$grouping
+        wl_av <- colMeans(wad_light[reps2$grouping==group_n,], na.rm=TRUE)
+        wl_av[is.nan(wl_av)] <- NA
+      }
       reps[[n]] <- rbind(reps[[n]],
                          c(replicate=paste0('light_avg_', names(reps)[n]),
                            iso=levels(grouping$iso)[1],
