@@ -75,8 +75,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   # Different methods of grouping data produce slightly different calculations
   # These are coded as a 3-digit binary code based on 3 grouping criteria
   #   - Replicate separated by group:  0/1 (no/yes)
-  #   - Labeled densities separate:   0/1
-  #   - Unlabeled densities separate: 0/1
+  #   - Labeled densities separated:   0/1
+  #   - Unlabeled densities separated: 0/1
   # Example: 010 means calculate MW with separate labeled values, and averaged unlabeled values
   # Example: 110 means calculate MW with separate labeled values, and unlabeled values averaged in each group
   # ----------------
@@ -139,7 +139,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
       } else if(separate_light) { # CODE 011
         #
         # FUNCTION TO EVALUATE WHETHER/HOW INDIVIDUAL SAMPLES ALIGN FOR COMPARISON
-        # IF MISSING SAMPLE IS LABELED, REMOVE UNLABELED, IF MISSING SAMPLE IS UNLABELED, USE AVERAGE OF UNLABELED
+        # IF MISSING SAMPLE IS LABELED, REMOVE, IF MISSING SAMPLE IS UNLABELED, USE AVERAGE OF UNLABELED
         # END RESULT SHOULD BE MATRICES OF SAME SIZE
         #
         # WAD correction
