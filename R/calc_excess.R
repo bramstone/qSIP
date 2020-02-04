@@ -3,9 +3,8 @@
 #' Calculates isotope incorporation in excess of natural abundances
 #'
 #' @param data Data as a \code{phyloseq} object
-#' @param percent Logical value indicating whether or not to calculate atom percent excess (\code{percent=TRUE}) or atom excess fraction (the default)
 #' @param ci_method Character value indicating how to calculate confidence intervals of stable isotope atom excess.
-#'   Options are \code{bootstrap} or \code{bayesian} (see \code{details} below for discussion on their differences).
+#'   Options are \code{bootstrap} or none (see \code{details} below for discussion on their differences).
 #'   The default is blank indicating that no confidence intervals will be calculated.
 #' @param ci Numeric value from 0 to 1 indicating the width of the confidence interval for bootsrapped atom excess values.
 #' @param iters Number of (subsampling) iterations to conduct to calculate confidence intervals. Default is \code{999}.
@@ -15,9 +14,6 @@
 #' @param offset_taxa Value from 0 to 1 indicating the percentage of the taxa to utilize for calculating offset correction values.
 #'   Taxa are ordered by lowest difference in WAD values.
 #'   Default is \code{0.1} indicating 10 percent of taxa with the lowest difference in WAD values.
-#' @param max_label Numeric value indicating the maximum possible isotope labeling in an experiment.
-#'   Keeping the value at \code{1} will ensure that the maximum possible atom excess value of 1 corresponds to complete updake of the isotope.
-#'   Recommended for experiments with lower atom percent enrichment treatments (see Details).
 #' @param separate_light Logical value indicating whether or not WAD-light scores should be averaged across all replicate groups or not.
 #'   If \code{FALSE}, unlabeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 #'   representing it's genetic molecular weight in the absence of isotope addition.
@@ -86,59 +82,82 @@
 #'
 #' @export
 
-calc_excess <- function(data, percent=FALSE, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, iters=999, filter=FALSE,
-                        correction=FALSE, offset_taxa=0.1, max_label=1, separate_light=FALSE, separate_label=TRUE, recalc=TRUE) {
+calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, filter=FALSE,
+                        correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
-  ci_method <- match.arg(tolower(ci_method), c('', 'bootstrap', 'bayesian'))
+  ci_method <- match.arg(tolower(ci_method), c('', 'none', 'bootstrap'))
+  # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
+  if(data@qsip@iso=='18O') {
+    adjust <- 12.07747
+    nat_abund <- 0.002000429
+  } else if(data@qsip@iso=='13C') {
+    wl <- data@qsip[['wad_light']]
+    gc <- (wl - 1.646057) / 0.083506
+    adjust <- (-0.4987282 * gc) + 9.974564
+    nat_abund <- 0.01111233
+  } else if(data@qsip@iso=='15N') {
+    wl <- data@qsip[['wad_light']]
+    gc <- (wl - 1.646057) / 0.083506
+    adjust <- (0.5024851 * gc) + 3.517396
+    nat_abund <- 0.003663004
+  }
+  # create MW heavy max
+  mw_max <- (adjust + mw_l)
   #
   # -------------------------------------------------------------
   # no CI and resampling
   #
-  if(ci_method=='') {
+  if(ci_method=='' || ci_method=='none') {
     # if recalculation wanted, do that first
-    # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_d_wad)
+    # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_mw)
     if(recalc | is.null(data@qsip[['mw_label']])) {
       data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa,
                       separate_light=separate_light, separate_label=separate_label, recalc=TRUE)
     }
-    # extract MW-labeled and convert to S3 matrix with taxa as ROWS (opposite all other calcs)
+    # extract MW-labeled and convert to S3 matrix with taxa as columns
     mw_h <- data@qsip[['mw_label']]
     mw_l <- data@qsip[['mw_light']]
-    if(!phyloseq::taxa_are_rows(data)) {
-      mw_h <- t(mw_h)
+    if(phyloseq::taxa_are_rows(data)) {
+      if(is.matrix(mw_h)) mw_h <- t(mw_h)
       if(is.matrix(mw_l)) mw_l <- t(mw_l)
     }
-    tax_names <- rownames(mw_h)
-    # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
-    if(data@qsip@iso=='18O') {
-      adjust <- 12.07747
-      nat_abund <- 0.002000429
-    } else if(data@qsip@iso=='13C') {
-      wl <- data@qsip[['wad_light']]
-      gc <- (wl - 1.646057) / 0.083506
-      adjust <- (-0.4987282 * gc) + 9.974564
-      nat_abund <- 0.01111233
-    } else if(data@qsip@iso=='15N') {
-      wl <- data@qsip[['wad_light']]
-      gc <- (wl - 1.646057) / 0.083506
-      adjust <- (0.5024851 * gc) + 3.517396
-      nat_abund <- 0.003663004
-    }
-    # create MW heavy max
-    mw_max <- (adjust + mw_l)
     # calculate atom excess
-    if(isTRUE(all.equal(dim(mw_l), dim(mw_h)))) {
+    # For most calc code methods, the molecular weight values will be the same dimensions (handled by calc_mw)
+    # calc codes 010 and 110 have different calculations
+    if(separate_label && !separate_light) {
+      if(length(data@qsip@rep_group)==0) { # CODE 010
+        #
+        num <- sweep(mw_h, 2, mw_l)
+        denom <- mw_max - mw_l
+        excess <- sweep(num, 2, denom, '/') * (1 - nat_abund)
+        #
+        # adjust for maximum possible labeling per sample
+        #
+      } else if(length(data@qsip@rep_group==1)) { # CODE 110
+        #
+        iso_group <- iso_grouping(data, data@qsip@iso_trt, data@qsip@rep_id, data@qsip@rep_group)
+        iso_group <- iso_group[match(rownames(mw_h), iso_group$replicate),]
+        mw_h <- split_data(data, mw_h, iso_group$grouping, grouping_w_phylosip=FALSE, keep_names=1)
+        mw_l <- split_data(data, mw_l, rownames(mw_l), grouping_w_phylosip=FALSE, keep_names=0)
+        #
+        excess <- Map(function(x, y) sweep(x, 2, y, function(mwH, mwL) ((mwH - mwL)/ mw_max - 1) * (1 - nat_abund)),
+                      mw_h, mw_l)
+        #
+        # adjust for maximum possible labeling per sample
+        #
+      }
+    } else { # ALL OTHER CODES
+      #
       excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
-    } else {
-      num <- sweep(mw_h, 1, mw_l)
-      denom <- mw_max - mw_l
-      excess <- sweep(num, 1, denom, '/') * (1 - nat_abund)
-      # adjust for differences maximum possible labeling
-      excess <- excess / max_label
+      # adjust for maximum possible labeling
+      #
     }
     # organize and add new data as S4 matrix
-    if(percent) excess <- excess * 100
-    data <- collate_results(data, t(excess), tax_names=tax_names, 'atom_excess', sparse=TRUE)
+    data <- collate_results(data, excess, tax_names=tax_names, 'atom_excess', sparse=TRUE)
+    output_attr <- c(rep_group=as.logical(length(data@qsip@rep_group)),
+                     sep_label=separate_label,
+                     sep_light=separate_light)
+    attributes(data@qsip[['atom_excess']])$calc_method <- output_attr
     return(data)
     #
     # -------------------------------------------------------------
@@ -185,37 +204,16 @@ calc_excess <- function(data, percent=FALSE, ci_method=c('', 'bootstrap', 'bayes
       ft_i <- recombine_in_order(ft_i, iso_group, n_taxa)
       rownames(ft_i) <- sam_names
       data <- suppressWarnings(collate_results(data, ft_i, tax_names=tax_names, 'wad', sparse=TRUE))
-      data <- suppressWarnings(calc_d_wad(data, correction=correction,
-                                          offset_taxa=offset_taxa,
-                                          separate_light=FALSE,
-                                          separate_label=FALSE,
-                                          recalc=FALSE))
       data <- suppressWarnings(calc_mw(data,
                                        separate_light=FALSE,
                                        separate_label=FALSE,
                                        recalc=FALSE))
       mw_h <- data@qsip[['mw_label']]
       mw_l <- data@qsip[['mw_light']]
-      if(!phyloseq::taxa_are_rows(data)) {
-        mw_h <- t(mw_h)
+      if(phyloseq::taxa_are_rows(data)) {
+        if(is.matrix(mw_h)) mw_h <- t(mw_h)
         if(is.matrix(mw_l)) mw_l <- t(mw_l)
       }
-      # calculate atom excess for this subsampling iteration
-      if(data@qsip@iso=='18O') {
-        adjust <- 12.07747
-        nat_abund <- 0.002000429
-      } else if(data@qsip@iso=='13C') {
-        wl <- data@qsip[['wad_light']]
-        gc <- (wl - 1.646057) / 0.083506
-        adjust <- (-0.4987282 * gc) + 9.974564
-        nat_abund <- 0.01111233
-      } else if(data@qsip@iso=='15N') {
-        wl <- data@qsip[['wad_light']]
-        gc <- (wl - 1.646057) / 0.083506
-        adjust <- (0.5024851 * gc) + 3.517396
-        nat_abund <- 0.003663004
-      }
-      mw_max <- (adjust + mw_l)
       # atom excess
       if(isTRUE(all.equal(dim(mw_l), dim(mw_h)))) {
         excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
@@ -237,6 +235,13 @@ calc_excess <- function(data, percent=FALSE, ci_method=c('', 'bootstrap', 'bayes
     data <- collate_results(data, ci_data$ci_l, tax_names=tax_names, 'atom_excess_ci_l', sparse=TRUE)
     data <- collate_results(data, ci_data$med, tax_names=tax_names, 'atom_excess', sparse=TRUE)
     data <- collate_results(data, ci_data$ci_u, tax_names=tax_names, 'atom_excess_ci_u', sparse=TRUE)
+    output_attr <- c(rep_group=as.logical(length(data@qsip@rep_group)),
+                     sep_label=FALSE,
+                     sep_light=FALSE)
+    attributes(data@qsip[['atom_excess_ci_l']])$calc_method <- output_attr
+    attributes(data@qsip[['atom_excess']])$calc_method <- output_attr
+    attributes(data@qsip[['atom_excess_ci_u']])$calc_method <- output_attr
+    #
     # recalculate WAD, diff_WAD, and MW values (they've been replaced by bootstrapped versions)
     data <- suppressWarnings(calc_mw(data,
                                      filter=filter,
@@ -246,13 +251,5 @@ calc_excess <- function(data, percent=FALSE, ci_method=c('', 'bootstrap', 'bayes
                                      separate_label=separate_label,
                                      recalc=TRUE))
     return(data)
-    #
-    # -------------------------------------------------------------
-    # CI values obtained through Bayesian analysis
-    #
-  } else if(ci_method=='bayesian') { # method for bayesian analysis
-    print('No Bayesian method yet, returning data unaltered')
-    return(data)
-    # code here.....
   }
 }
