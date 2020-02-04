@@ -58,6 +58,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   }
   # extract WAD values and convert to S3 matrix
   ft <- data@qsip[['wad']]
+  ft <- as(ft, 'matrix')
   if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
   n_taxa <- ncol(ft)
   tax_names <- colnames(ft)
@@ -140,7 +141,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
     wh <- split_data(data, wh, iso_h$interaction, grouping_w_phylosip=FALSE, keep_names=1)
     wl <- split_data(data, wl, iso_l$interaction, grouping_w_phylosip=FALSE, keep_names=1)
     # calculate global (spanning all groups) unlabeled WADs
-    global_wl <- colMeans(wl, na.rm=TRUE)
+    global_wl <- do.call(rbind, wl)
+    global_wl <- colMeans(global_wl, na.rm=TRUE)
     global_wl[is.nan(global_wl)] <- NA
     #
     if(!separate_label) {
