@@ -92,6 +92,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         wl <- colMeans(wl, na.rm=TRUE)
         wl[is.nan(wl)] <- NA
+        # WAD correction
+        if(correction) {
+          shift <- wh - wl
+          shift <- sort(shift, decreasing=FALSE)
+          shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
+          wh <- wh - shift
+        }
         # calculate GC content of each taxa
         gc <- (1 / 0.083506) * (wl - 1.646057)
         # calculate mol. weight of taxa
@@ -106,6 +113,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         mw_l <- (0.496 * gc) + 307.691
         mw_h <- sweep(wl, 2, wh, function(wL, wH) (((wH - wL)/wL) + 1))
         mw_h <- mw_h * mw_l
+        shift <- sweep(wl, 2, wh, function(wL, wH) wH - wL)
         #
       }
     } else if(separate_label) {
@@ -113,13 +121,20 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         wl <- colMeans(wl, na.rm=T)
         wl[is.nan(wl)] <- NA
-        #
+        # WAD correction
+        if(correction) {
+          shift <- sweep(wh, 2, wl, function(wH, wL) wH - wL)
+          shift <- sort(shift, decreasing=FALSE)
+          shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
+          wh <- wh - shift
+        }
         # calculate GC content of each taxa
         gc <- (1 / 0.083506) * (wl - 1.646057)
         # calculate mol. weight of taxa
         mw_l <- (0.496 * gc) + 307.691
         mw_h <- sweep(wh, 2, wl, function(wH, wL) (((wH - wL)/wL) + 1))
         mw_h <- sweep(mw_h, 2, mw_l, '*')
+        shift <- sweep(wh, 2, wl, '-')
         #
       } else if(separate_light) { # CODE 011
         #
@@ -127,6 +142,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # IF MISSING SAMPLE IS LABELED, REMOVE UNLABELED, IF MISSING SAMPLE IS UNLABELED, USE AVERAGE OF UNLABELED
         # END RESULT SHOULD BE MATRICES OF SAME SIZE
         #
+        # WAD correction
+        if(correction) {
+          shift <- wh - wl
+          shift <- sort(shift, decreasing=FALSE)
+          shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
+          wh <- wh - shift
+        }
         # calculate GC content of each taxa
         gc <- (1 / 0.083506) * (wl - 1.646057)
         # calculate mol. weight of taxa
@@ -165,6 +187,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         wh <- do.call(rbind, wh)
         wl <- do.call(rbind, wl)
+        # WAD correction
+        if(correction) {
+          shift <- wh - wl
+          shift <- sort(shift, decreasing=FALSE)
+          shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
+          wh <- wh - shift
+        }
         # calculate GC content of each taxa
         gc <- (1 / 0.083506) * (wl - 1.646057)
         # calculate mol. weight of taxa
@@ -180,6 +209,14 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
         # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
         #
+        # WAD correction
+        if(correction) {
+          shift <- base::Map(function(x, y) sweep(x, 2, y, function(wL, wH) wH - wL),
+                             wl, wh)
+          shift <- base::lapply(shift, sort, decreasing=FALSE)
+          shift <- base::lapply(shift, function(x) median(x[1:floor(offset_taxa * length(x))], na.rm=T))
+          wh <- base::lapply(wh, '-', shift)
+        }
         # calculate GC content of each taxa
         gc <- base::lapply(wl, function(wL) (1 / 0.083506) * (wL - 1.646057))
         # calculate mol. weight of taxa
@@ -187,6 +224,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         mw_h <- base::Map(function(x, y) sweep(x, 2, y, function(wL, wH) (((wH - wL)/wL) + 1)),
                           wl, wh)
         mw_h <- base::Map('*', mw_h, mw_l)
+        shift <- base::Map(function(x, y) sweep(x, 2, y, function(wL, wH) wH - wL), wl, wh)
         #
       }
     } else if(separate_label) {
@@ -203,6 +241,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # wl <- base::lapply(wl, function(x) global_wl)
         # }
         #
+        # WAD correction
+        if(correction) {
+          shift <- base::Map(function(x, y) sweep(x, 2, y, '-'), wh, wl)
+          shift <- base::lapply(shift, sort, decreasing=FALSE)
+          shift <- base::lapply(shift, function(x) median(x[1:floor(offset_taxa * length(x))], na.rm=T))
+          wh <- base::lapply(wh, '-', shift)
+        }
         # calculate GC content of each taxa
         gc <- base::lapply(wl, function(wL) (1 / 0.083506) * (wL - 1.646057))
         # calculate mol. weight of taxa
@@ -210,6 +255,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         mw_h <- base::Map(function(x, y) sweep(x, 2, y,  function(wH, wL) (((wH - wL)/wL) + 1)),
                           wh, wl)
         mw_h <- base::Map('*', mw_h, mw_l)
+        shift <- base::Map(function(x, y) sweep(x, 2, y, '-'), wh, wl)
         #
       } else if(separate_light) { # CODE 111
         #
@@ -220,12 +266,19 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         wh <- do.call(rbind, wh)
         wl <- do.call(rbind, wl)
-        #
+        # WAD correction
+        if(correction) {
+          shift <- wh - wl
+          shift <- sort(shift, decreasing=FALSE)
+          shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
+          wh <- wh - shift
+        }
         # calculate GC content of each taxa
         gc <- (1 / 0.083506) * (wl - 1.646057)
         # calculate mol. weight of taxa
         mw_l <- (0.496 * gc) + 307.691
         mw_h <- (((wh - wl)/wl) + 1) * mw_l
+        shift <- wh - wl
       }
     }
   }
