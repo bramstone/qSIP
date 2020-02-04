@@ -15,6 +15,8 @@
 #' @param separate_label Logical value indicating whether or not WAD-label scores should be averaged across all replicate groups or not.
 #'   If \code{FALSE}, labeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 #'   representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}.
+#' @param global_light Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
+#'   all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.
 #' @param recalc Logical value indicating whether or not to recalculate WAD, WAD heavy, and WAD light values or use existing values. Default is \code{TRUE}.
 #'
 #' @details Some details about proper isotope control-treatment factoring. If weighted average densities or the change in weighted average densities
@@ -30,6 +32,8 @@
 #'
 #'   \deqn{G_{i} = \frac{1}{0.083506} \cdot (W_{Light,i} - 1.646057)}
 #'   Which indicates the GC content of taxon \emph{i} based on the density of its DNA when unlabeled
+#'
+#'   Explain consequences of different grouping actions on results.
 #'
 #' @return \code{calc_mw} adds three S4 Matrix class objects (which more efficiently stores sparse matrix data) to the \code{data@@qsip@@.Data} slot
 #'   of molecular weights for each taxon at each group of replicates in the labeled and unlabeled groups. The row and column
@@ -49,9 +53,10 @@
 #'
 #' @export
 
-calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE, recalc=TRUE) {
+calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE, global_light=FALSE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
-  # if delta-WAD values don't exist, or if recalculation wanted, calculate those first
+  if(separate_label && separate_light) stop('Must specify replicate matching with data@qsip@rep_num', call.=FALSE)
+  # if WAD values don't exist, or if recalculation wanted, calculate those first
   # this will also handle rep_id validity (through calc_wad)
   if(recalc | is.null(data@qsip[['wad']])) {
     data <- calc_wad(data, filter=filter)
@@ -138,9 +143,10 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
       } else if(separate_light) { # CODE 011
         #
-        # FUNCTION TO EVALUATE WHETHER/HOW INDIVIDUAL SAMPLES ALIGN FOR COMPARISON
-        # IF MISSING SAMPLE IS LABELED, REMOVE, IF MISSING SAMPLE IS UNLABELED, USE AVERAGE OF UNLABELED
-        # END RESULT SHOULD BE MATRICES OF SAME SIZE
+        # evaluate that individual samples align for comparison
+        # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
+        good_vals <- match_reps(data, wh, wl, iso_group, rep_group=FALSE)
+        wh <- good_vals[[1]]; wl <- good_vals[[2]]
         #
         # WAD correction
         if(correction) {
@@ -177,11 +183,11 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         wl <- base::lapply(wl, colMeans, na.rm=TRUE)
         wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
         #
-        # if(global_unlabel=FALSE) {
+        # if(global_light=FALSE) {
         # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
         # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
         # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
-        # } else if(global_unlabel=TRUE) {
+        # } else if(global_light=TRUE) {
         # wl <- base::lapply(wl, function(x) global_wl)
         # }
         #
@@ -233,7 +239,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         wl <- base::lapply(wl, colMeans, na.rm=TRUE)
         wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
         #
-        # if(global_unlabel=FALSE) {
+        # if(global_light=FALSE) {
         # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
         # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
         # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
@@ -259,10 +265,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
       } else if(separate_light) { # CODE 111
         #
-        # FUNCTION TO EVALUATE WHETHER/HOW INDIVIDUAL SAMPLES ALIGN FOR COMPARISON
-        # IF MISSING SAMPLE IS LABELED, REMOVE UNLABELED, IF MISSING SAMPLE IS UNLABELED, USE GROUP AVERAGE OF UNLABELED
-        # BUT IF GLOBAL_UNLABEL IS TRUE, USE GLOBAL AVERAGE
-        # END RESULT SHOULD BE MATRICES OF SAME SIZE
+        # evaluate that individual samples align for comparison
+        # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
+        good_vals <- match_reps(data, wh, wl, iso_group, rep_group=FALSE)
+        wh <- good_vals[[1]]; wl <- good_vals[[2]]
+        if(global_light) {
+          wl[grepl('light_avg', rownames(wl)),] <- global_wl
+        }
         #
         wh <- do.call(rbind, wh)
         wl <- do.call(rbind, wl)
