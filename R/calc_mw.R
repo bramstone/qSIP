@@ -285,8 +285,10 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   # organize and add new data as S4 matrices
   data <- collate_results(data, mw_h, tax_names=tax_names, 'mw_label', sparse=TRUE)
   data <- collate_results(data, mw_l, tax_names=tax_names, 'mw_light', sparse=TRUE)
-  attributes(data@qsip[['mw_label']])$calc_method <- c(rep_group=as.logical(length(data@qsip@rep_group)),
-                                                       sep_label=separate_label,
-                                                       sep_light=separate_light)
+  output_attr <- c(rep_group=as.logical(length(data@qsip@rep_group)),
+                   sep_label=separate_label,
+                   sep_light=separate_light)
+  attributes(data@qsip[['mw_label']])$calc_method <- output_attr
+  attributes(data@qsip[['mw_light']])$calc_method <- output_attr
   return(data)
 }
