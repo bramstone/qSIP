@@ -146,7 +146,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # evaluate that individual samples align for comparison
         # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
         good_vals <- match_reps(data, wh, wl, iso_group, rep_group=FALSE)
-        wh <- good_vals[[1]]; wl <- good_vals[[2]]
+        wh <- good_vals[[1]]
+        wl <- good_vals[[2]]
         #
         # WAD correction
         if(correction) {
@@ -268,7 +269,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # evaluate that individual samples align for comparison
         # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
         good_vals <- match_reps(data, wh, wl, iso_group, rep_group=FALSE)
-        wh <- good_vals[[1]]; wl <- good_vals[[2]]
+        wh <- good_vals[[1]]
+        wl <- good_vals[[2]]
         if(global_light) {
           wl[grepl('light_avg', rownames(wl)),] <- global_wl
         }
