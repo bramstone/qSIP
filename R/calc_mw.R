@@ -52,7 +52,7 @@
 calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   # if delta-WAD values don't exist, or if recalculation wanted, calculate those first
-  # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_d_wad)
+  # this will also handle rep_id validity (through calc_wad)
   if(recalc | is.null(data@qsip[['wad']])) {
     data <- calc_wad(data, filter=filter)
   }
