@@ -229,10 +229,10 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
   reps <- split(grouping, grouping$replicate_num)
   keep_groups <- !logical(length(reps))
   for(n in length(reps)) {
-    n_light <- reps[[n]][as.numeric(reps[[n]]$iso==1),]
-    n_label <- reps[[n]][as.numeric(reps[[n]]$iso==2),]
-    if(n_light==0) {
-      if(rep_group=FALSE) {
+    n_light <- reps[[n]][as.numeric(reps[[n]]$iso)==1,]
+    n_label <- reps[[n]][as.numeric(reps[[n]]$iso)==2,]
+    if(nrow(n_light)==0) {
+      if(rep_group==FALSE) {
         # use global averages
         wl_av <- colMeans(wad_light, na.rm=TRUE)
         wl_av[is.nan(wl_av)] <- NA
@@ -249,47 +249,47 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
                            interaction=paste0(levels(grouping$iso)[1], '.1')))
       wad_light <- rbind(wad_light, paste0('light_avg_', names(reps)[n])=wl_av)
       warning('Missing unlabeled replicate to compare against ',
-              reps[[n]]$replicate[as.numeric(reps[[n]]$iso==2)],
+              reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2],
               '\nUsing average of unlabeled replicates', call.=FALSE)
       #
-    } else if(n_light > 1) {
+    } else if(nrow(n_light) > 1) {
       # if duplicated light values, average and combine
-      light_duplicated <- reps[[n]]$replicate[as.numeric(reps[[n]]$iso==1)]
+      light_duplicated <- reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==1]
       wl_av <- wad_light[light_duplicated,]
       wl_av <- colMeans(wl_av, na.rm=T)
       wl_av[is.nan(wl_av)] <- NA
-      reps[[n]] <- rbind(reps[[n]][as.numeric(reps[[n]]$iso==2),],
+      reps[[n]] <- rbind(reps[[n]][as.numeric(reps[[n]]$iso)==2,],
                          c(replicate=paste0('light_avg_', names(reps)[n]),
                            iso=levels(grouping$iso)[1],
                            grouping=1,
                            interaction=paste0(levels(grouping$iso)[1], '.1')))
       wad_light <- rbind(wad_light, paste0('light_avg_', names(reps)[n])=wl_av)
       warning('Duplicate unlabeled replicates: ',
-              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso==1)], collapse=', '),
+              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==1], collapse=', '),
               '\nUsing average of duplicates', call.=FALSE)
       #
-    } else if(n_label==0) {
+    } else if(nrow(n_label)==0) {
       # remove the unmatched unlabeled value
       warning('Missing labeled replicate',
               '\nRemoving replicates:',
-              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso==1)], collapse=', '),
+              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==1], collapse=', '),
               ' - from calculation', call.=FALSE)
       reps[[n]] <- reps[[n]][0,]
       #
-    } else if(n_label > 1) {
+    } else if(nrow(n_label) > 1) {
       # if duplicated label values, average and combine
-      label_duplicated <- reps[[n]]$replicate[as.numeric(reps[[n]]$iso==2)]
+      label_duplicated <- reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2]
       wh_av <- wad_label[label_duplicated,]
       wh_av <- colMeans(wh_av, na.rm=T)
       wh_av[is.nan(wh_av)] <- NA
-      reps[[n]] <- rbind(reps[[n]][as.numeric(reps[[n]]$iso==2),],
+      reps[[n]] <- rbind(reps[[n]][as.numeric(reps[[n]]$iso)==2,],
                          c(replicate=paste0('label_avg_', names(reps)[n]),
                            iso=levels(grouping$iso)[2],
                            grouping=1,
                            interaction=paste0(levels(grouping$iso)[2], '.1')))
       wad_label <- rbind(wad_label, paste0('label_avg_', names(reps)[n])=wad_label)
       warning('Duplicate labeled replicates: ',
-              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso==2)], collapse=', '),
+              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2], collapse=', '),
               '\nUsing average of duplicates', call.=FALSE)
       #
     }
@@ -301,3 +301,50 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
               wad_light[match(reps_l$replicate, rownames(wad_light)),]))
 }
 
+
+# function which tests label and light values for matching groups
+match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALSE) {
+  groups <- unique(iso_group[,c('iso', 'grouping', 'interaction')])
+  groups2 <- groups
+  groups <- split(groups, groups$grouping)
+  keep_groups <- !logical(length(groups))
+  #
+  if(global_light==TRUE) {
+    global_wl <- do.call(rbind, wl)
+    global_wl <- colMeans(global_wl, na.rm=TRUE)
+    global_wl[is.nan(global_wl)] <- NA
+  }
+  #
+  for(n in length(groups)) {
+    n_light <- groups[[n]][as.numeric(groups[[n]]$iso)==1,]
+    n_label <- groups[[n]][as.numeric(groups[[n]]$iso)==2,]
+    #
+    # if missing light group
+    if(nrow(n_light)==0) {
+      groups[[n]] <- rbind(groups[[n]],
+                           c(iso=levels(groups2$iso)[1],
+                             grouping=names(groups)[n],
+                             interaction=interaction(levels(groups2$iso)[1], names(groups)[n])))
+      wad_light <- c(wad_light, list(interaction(levels(groups2$iso)[1], names(groups)[n])=global_wl))
+      warning('Missing unlabeled group to compare against ',
+              groups[[n]]$replicate[as.numeric(groups[[n]]$iso)==2],
+              '\nUsing average of unlabeled groups', call.=FALSE)
+      #
+      # else if missing label group
+    } else if(nrow(n_label)==0) {
+      # remove the unmatched unlabeled value
+      warning('Missing labeled group',
+              '\nRemoving group:',
+              paste(groups[[n]]$grouping[as.numeric(groups[[n]]$iso)==1], collapse=', '),
+              ' - from calculation', call.=FALSE)
+      groups[[n]] <- groups[[n]][0,]
+      #
+    }
+  }
+  if(global_light==TRUE) wad_light <- base::lapply(wad_light, function(x) global_wl)
+  groups <- do.call(rbind, groups)
+  groups_h <- droplevels(groups[as.numeric(groups$iso)==2,])
+  groups_l <- droplevels(groups[as.numeric(groups$iso)==1,])
+  return(list(wad_label[[match(groups_h$replicate, rownames(wad_label))]],
+              wad_light[[match(groups_l$replicate, rownames(wad_light))]]))
+}
