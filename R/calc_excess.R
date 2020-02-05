@@ -232,6 +232,7 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
     data <- collate_results(data, ci_data$ci_l, tax_names=tax_names, 'atom_excess_ci_l', sparse=TRUE)
     data <- collate_results(data, ci_data$med, tax_names=tax_names, 'atom_excess', sparse=TRUE)
     data <- collate_results(data, ci_data$ci_u, tax_names=tax_names, 'atom_excess_ci_u', sparse=TRUE)
+    # add attributes summarizing the calculation method
     output_attr <- c(rep_group=as.logical(length(data@qsip@rep_group)),
                      sep_label=FALSE,
                      sep_light=FALSE)
