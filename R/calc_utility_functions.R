@@ -247,7 +247,8 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
                            iso=levels(grouping$iso)[1],
                            grouping=1,
                            interaction=paste0(levels(grouping$iso)[1], '.1')))
-      wad_light <- rbind(wad_light, paste0('light_avg_', names(reps)[n])=wl_av)
+      wad_light <- rbind(wad_light, wl_av)
+      rownames(wad_light)[grepl('wl_av')] <- paste0(levels(grouping$iso)[1], '.1')
       warning('Missing unlabeled replicate to compare against ',
               reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2],
               '\nUsing average of unlabeled replicates', call.=FALSE)
@@ -263,7 +264,8 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
                            iso=levels(grouping$iso)[1],
                            grouping=1,
                            interaction=paste0(levels(grouping$iso)[1], '.1')))
-      wad_light <- rbind(wad_light, paste0('light_avg_', names(reps)[n])=wl_av)
+      wad_light <- rbind(wad_light, wl_av)
+      rownames(wad_light)[grepl('wl_av')] <- paste0(levels(grouping$iso)[1], '.1')
       warning('Duplicate unlabeled replicates: ',
               paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==1], collapse=', '),
               '\nUsing average of duplicates', call.=FALSE)
@@ -287,7 +289,8 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
                            iso=levels(grouping$iso)[2],
                            grouping=1,
                            interaction=paste0(levels(grouping$iso)[2], '.1')))
-      wad_label <- rbind(wad_label, paste0('label_avg_', names(reps)[n])=wad_label)
+      wad_label <- rbind(wad_label, wh_av)
+      rownames(wad_light)[grepl('wh_av')] <- paste0(levels(grouping$iso)[2], '.1')
       warning('Duplicate labeled replicates: ',
               paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2], collapse=', '),
               '\nUsing average of duplicates', call.=FALSE)
@@ -325,7 +328,8 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
                            c(iso=levels(groups2$iso)[1],
                              grouping=names(groups)[n],
                              interaction=interaction(levels(groups2$iso)[1], names(groups)[n])))
-      wad_light <- c(wad_light, list(interaction(levels(groups2$iso)[1], names(groups)[n])=global_wl))
+      wad_light <- c(wad_light, list(global_wl))
+      names(wad_light)[grepl('global_wl')] <- interaction(levels(groups2$iso)[1], names(groups)[n])
       warning('Missing unlabeled group to compare against ',
               groups[[n]]$replicate[as.numeric(groups[[n]]$iso)==2],
               '\nUsing average of unlabeled groups', call.=FALSE)
