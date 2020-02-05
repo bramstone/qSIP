@@ -92,7 +92,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
       #
       wh <- colMeans(wh, na.rm=TRUE)
       wh[is.nan(wh)] <- NA
-      #
+      # ...........................................
       if(!separate_light) { # CODE 000
         #
         wl <- colMeans(wl, na.rm=TRUE)
@@ -109,7 +109,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # calculate mol. weight of taxa
         mw_l <- (0.496 * gc) + 307.691
         mw_h <- (((wh - wl)/wl) + 1) * mw_l
-        #
+        # ...........................................
       } else if(separate_light) { # CODE 001
         #
         # calculate GC content of each taxa
@@ -122,6 +122,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
       }
     } else if(separate_label) {
+      # ...........................................
       if(!separate_light) { # CODE 010
         #
         wl <- colMeans(wl, na.rm=T)
@@ -140,7 +141,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         mw_h <- sweep(wh, 2, wl, function(wH, wL) (((wH - wL)/wL) + 1))
         mw_h <- sweep(mw_h, 2, mw_l, '*')
         shift <- sweep(wh, 2, wl, '-')
-        #
+        # ...........................................
       } else if(separate_light) { # CODE 011
         #
         # evaluate that individual samples align for comparison
@@ -174,7 +175,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
       #
       wh <- base::lapply(wh, colMeans, na.rm=TRUE)
       wh <- base::lapply(wh, function(x) {x[is.nan(x)] <- NA; x})
-      #
+      # ...........................................
       if(!separate_light) { # CODE 100
         #
         wl <- base::lapply(wl, colMeans, na.rm=TRUE)
@@ -201,7 +202,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # calculate mol. weight of taxa
         mw_l <- (0.496 * gc) + 307.691
         mw_h <- (((wh - wl)/wl) + 1) * mw_l
-        #
+        # ...........................................
       } else if(separate_light) { # CODE 101
         #
         wh <- base::lapply(wh, colMeans, na.rm=TRUE)
@@ -233,6 +234,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
       }
     } else if(separate_label) {
+      # ...........................................
       if(!separate_light) { # CODE 110
         #
         wl <- base::lapply(wl, colMeans, na.rm=TRUE)
@@ -260,7 +262,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
                           wh, wl)
         mw_h <- base::Map('*', mw_h, mw_l)
         shift <- base::Map(function(x, y) sweep(x, 2, y, '-'), wh, wl)
-        #
+        # ...........................................
       } else if(separate_light) { # CODE 111
         #
         # evaluate that individual samples align for comparison
