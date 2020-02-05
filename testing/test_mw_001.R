@@ -32,7 +32,6 @@ rownames(mw) <- NULL
 
 mw_qsip <- mw
 
-((
 
 ############################################
 # manual calculation
