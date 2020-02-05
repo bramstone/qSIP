@@ -20,6 +20,8 @@
 #' @param separate_label Logical value indicating whether or not WAD-label scores should be averaged across all replicate groups or not.
 #'   If \code{FALSE}, labeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 #'   representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}.
+#' @param global_light Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
+#'   all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.
 #' @param recalc Logical value indicating whether or not to recalculate WAD and molecular weight values or use existing values. Default is \code{TRUE}.
 #'   Using bootstrapped calculations will automatically recalculate all values.
 #'
@@ -82,8 +84,8 @@
 #'
 #' @export
 
-calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, filter=FALSE,
-                        correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE, recalc=TRUE) {
+calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, filter=FALSE, correction=FALSE, offset_taxa=0.1,
+                       separate_light=FALSE, separate_label=TRUE, global_light=FALSE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   ci_method <- match.arg(tolower(ci_method), c('', 'none', 'bootstrap'))
   # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
@@ -111,8 +113,8 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
     # if recalculation wanted, do that first
     # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_mw)
     if(recalc | is.null(data@qsip[['mw_label']])) {
-      data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa,
-                      separate_light=separate_light, separate_label=separate_label, recalc=TRUE)
+      data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
+                      separate_label=separate_label, global_light=global_light, recalc=TRUE)
     }
     # extract MW-labeled and convert to S3 matrix with taxa as columns
     mw_h <- data@qsip[['mw_label']]
@@ -207,6 +209,7 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
       data <- suppressWarnings(calc_mw(data,
                                        separate_light=FALSE,
                                        separate_label=FALSE,
+                                       global_light=global_light,
                                        recalc=FALSE))
       mw_h <- data@qsip[['mw_label']]
       mw_l <- data@qsip[['mw_light']]
@@ -214,16 +217,10 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
         if(is.matrix(mw_h)) mw_h <- t(mw_h)
         if(is.matrix(mw_l)) mw_l <- t(mw_l)
       }
-      # atom excess
-      if(isTRUE(all.equal(dim(mw_l), dim(mw_h)))) {
-        excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
-      } else {
-        num <- sweep(mw_h, 1, mw_l)
-        denom <- mw_max - mw_l
-        excess <- sweep(num, 1, denom, '/') * (1 - nat_abund)
-        # adjust for differences maximum possible labeling
-        excess <- excess / max_label
-      }
+      # atom excess (MW values should be the same dimensions)
+      excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
+      # adjust for differences maximum possible labeling
+      #
       # organize and add data as single column in bootstrap output matrix
       boot_collect[,i] <- c(excess)
     }
