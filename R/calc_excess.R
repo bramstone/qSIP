@@ -65,7 +65,7 @@
 #'   either grouped by isotope treatment alone, or also by some other grouping factor (if \code{data@@qsip@@rep_group} is specified).
 #'   Using no bootstrap value allows separate enrichment values to be attained for each replicate, if \code{separate_label=TRUE}.
 #'
-#' @seealso \code{\link{calc_wad}}, \code{\link{calc_d_wad}}, \code{\link{calc_mw}}
+#' @seealso \code{\link{calc_wad}}, \code{\link{calc_mw}}
 #'
 #' @examples
 #'  # Load in example data

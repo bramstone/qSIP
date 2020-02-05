@@ -70,5 +70,5 @@ Hungate, Bruce, \emph{et al.} 2015. Quantitative microbial ecology through stabl
  \emph{Applied and Environmental Microbiology} \strong{81}: 7570 - 7581.
 }
 \seealso{
-\code{\link{calc_wad}}, \code{\link{calc_d_wad}}
+\code{\link{calc_wad}}
 }

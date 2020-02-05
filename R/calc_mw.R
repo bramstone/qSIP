@@ -40,7 +40,7 @@
 #'   specifications will mirror those of the \code{phylosip}'s \code{\link{otu_table}}, meaning if taxa are listed on the table rows,
 #'   they will in the resulting S4 Matrix class.
 #'
-#' @seealso \code{\link{calc_wad}}, \code{\link{calc_d_wad}}
+#' @seealso \code{\link{calc_wad}}
 #'
 #' @examples
 #'  # Load in example data
