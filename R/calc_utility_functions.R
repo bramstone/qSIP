@@ -222,7 +222,7 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
   reps <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
   names(reps) <- c('replicate', 'replicate_num')
   reps <- merge(grouping, reps, all.x=TRUE)
-  if(rep_group=TRUE) {
+  if(rep_group==TRUE) {
     reps$replicate_num <- interaction(reps$grouping, reps$replicate_num)
   }
   reps2 <- reps
