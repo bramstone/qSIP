@@ -4,18 +4,16 @@
 \alias{calc_excess}
 \title{Calculation of atom excess}
 \usage{
-calc_excess(data, percent = FALSE, ci_method = c("", "bootstrap",
-  "bayesian"), ci = 0.95, iters = 999, filter = FALSE,
-  correction = FALSE, offset_taxa = 0.1, max_label = 1,
-  separate_light = FALSE, separate_label = TRUE, recalc = TRUE)
+calc_excess(data, ci_method = c("", "bootstrap"), ci = 0.95,
+  iters = 999, filter = FALSE, correction = FALSE,
+  offset_taxa = 0.1, separate_light = FALSE, separate_label = TRUE,
+  global_light = FALSE, recalc = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
 
-\item{percent}{Logical value indicating whether or not to calculate atom percent excess (\code{percent=TRUE}) or atom excess fraction (the default)}
-
 \item{ci_method}{Character value indicating how to calculate confidence intervals of stable isotope atom excess.
-Options are \code{bootstrap} or \code{bayesian} (see \code{details} below for discussion on their differences).
+Options are \code{bootstrap} or none (see \code{details} below for discussion on their differences).
 The default is blank indicating that no confidence intervals will be calculated.}
 
 \item{ci}{Numeric value from 0 to 1 indicating the width of the confidence interval for bootsrapped atom excess values.}
@@ -31,10 +29,6 @@ This will require \code{data} to have a filter applied with \code{\link{filter_q
 Taxa are ordered by lowest difference in WAD values.
 Default is \code{0.1} indicating 10 percent of taxa with the lowest difference in WAD values.}
 
-\item{max_label}{Numeric value indicating the maximum possible isotope labeling in an experiment.
-Keeping the value at \code{1} will ensure that the maximum possible atom excess value of 1 corresponds to complete updake of the isotope.
-Recommended for experiments with lower atom percent enrichment treatments (see Details).}
-
 \item{separate_light}{Logical value indicating whether or not WAD-light scores should be averaged across all replicate groups or not.
 If \code{FALSE}, unlabeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 representing it's genetic molecular weight in the absence of isotope addition.}
@@ -42,6 +36,9 @@ representing it's genetic molecular weight in the absence of isotope addition.}
 \item{separate_label}{Logical value indicating whether or not WAD-label scores should be averaged across all replicate groups or not.
 If \code{FALSE}, labeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}.}
+
+\item{global_light}{Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
+all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.}
 
 \item{recalc}{Logical value indicating whether or not to recalculate WAD and molecular weight values or use existing values. Default is \code{TRUE}.
 Using bootstrapped calculations will automatically recalculate all values.}

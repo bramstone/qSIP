@@ -5,7 +5,8 @@
 \title{Calculation of molecular weights}
 \usage{
 calc_mw(data, filter = FALSE, correction = FALSE, offset_taxa = 0.1,
-  separate_light = FALSE, separate_label = TRUE, recalc = TRUE)
+  separate_light = FALSE, separate_label = TRUE,
+  global_light = FALSE, recalc = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -26,6 +27,9 @@ representing it's genetic molecular weight in the absence of isotope addition.}
 \item{separate_label}{Logical value indicating whether or not WAD-label scores should be averaged across all replicate groups or not.
 If \code{FALSE}, labeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}.}
+
+\item{global_light}{Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
+all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.}
 
 \item{recalc}{Logical value indicating whether or not to recalculate WAD, WAD heavy, and WAD light values or use existing values. Default is \code{TRUE}.}
 }
@@ -52,6 +56,8 @@ Some details about proper isotope control-treatment factoring. If weighted avera
 
   \deqn{G_{i} = \frac{1}{0.083506} \cdot (W_{Light,i} - 1.646057)}
   Which indicates the GC content of taxon \emph{i} based on the density of its DNA when unlabeled
+
+  Explain consequences of different grouping actions on results.
 }
 \examples{
  # Load in example data
