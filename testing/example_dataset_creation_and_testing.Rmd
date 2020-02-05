@@ -1,0 +1,305 @@
+---
+title: "Example dataset creation and testing approach for qSIP package"
+author: "Bram Stone"
+date: "January 30, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=F}
+devtools::install_github('bramstone/qsip', ref='regroup')
+library(phyloseq)
+library(qsip)
+library(ggplot2)
+library(gridExtra)
+
+# define ggplot style
+source('~/Projects/Dimensions of Biodiversity qSIP scaling project/Figures-draft-3/gg-theme-dimensions-nature.R')
+theme_set(theme_dimensions)
+
+# function that transforms S4 matrix into long-form data frame
+mat_to_df <- function(x, output='value') {
+  # if s3 class matrix, convert
+  if(grepl('matrix', class(x))) y <- Matrix::Matrix(x, sparse=TRUE)
+  # convert to dgTMatrix
+  y <- as(y, 'dgTMatrix')
+  # convert to data.frame
+  y <- data.frame(RepID=y@Dimnames[[2]][y@j + 1], 
+                  OTU=y@Dimnames[[1]][y@i + 1],
+                  value=y@x,
+                  stringsAsFactors=F)
+  names(y)[3] <- output
+  return(y)
+}
+```
+
+## Overview
+
+  + The qSIP package gives users the option to group their samples in a variety of ways
+  + These different grouping schemes each require different steps to properly calculate qSIP values and should be able to anticipate missing data and adjust calculations in ways that are reasonable to the user
+  + Thus, an example dataset will be created that incorporates multiple levels of grouping so that we can test the qSIP package code
+  + The output from the qSIP package will be compared to calculations made manually
+  + The example dataset will be modified from the Koch et al. 2018 paper in *Ecosphere*
+  
+## Example data scheme
+
+```{r echo=F}
+dat_scheme <- expand.grid(replicates=3, group=LETTERS[1:2], treatment=c('^16^O', '^18^O'), time=c(10,15))
+
+dat_scheme <- rbind(dat_scheme, expand.grid(replicates=3, group=LETTERS[1:2], treatment=NA, time=0))
+
+group_names <- expand.grid(LETTERS[1:2], c('16O', '18O'), c(10,15))
+group_names <- rbind(group_names, expand.grid(LETTERS[1:2], NA, 0))
+group_names <- Reduce(function(x,y) paste(x,y, sep='_'), group_names)
+group_names <- sub('NA_', '', group_names)
+#
+rownames(dat_scheme) <- group_names
+
+dat_scheme <- dat_scheme[order(dat_scheme$time, dat_scheme$group),]
+knitr::kable(dat_scheme, format='html', align='l', table.attr='style="width:40%"', row.names=T)
+```  
+
+</br>
+These data have multiple groups, and multiple timepoints. Each replicate has 12-18 fractions, as determined by the *Ecosphere* dataset.
+
+---
+
+## Data creation
+
+### Read in _Ecosphere_ data
+```{r}
+data_dir <- '~/Projects/Dimensions of Biodiversity qSIP scaling project/Data/Ecosphere 2018 data'
+otu_file <- 'TM_uc_97_non_chimeras_otu_table_no_low_sample_filtered_.005%filtered_L6.txt'
+
+# read in otu data (contains sample data)
+otu_names <- scan(paste(data_dir, otu_file, sep='/'), 
+                  what=character(), nlines=1, sep='\t')
+otu <-  scan(paste(data_dir, otu_file, sep='/'), 
+             what=character(), skip=1, sep='\t')
+#
+otu <- matrix(otu, ncol=length(otu_names), byrow=T)
+colnames(otu) <- otu_names; rm(otu_names)
+
+# get taxonomic data from OTU table
+tax <- otu[,1]
+names(tax) <- paste0('otu_', 1:length(tax))
+
+# fix otu table
+otu <- otu[,-1]
+rownames(otu) <- names(tax)
+storage.mode(otu) <- 'double'
+
+# read in sample data and soil data
+sam <- read.delim(paste(data_dir, 'TM_qSIP_Data.txt', sep='/'))
+soil <- read.delim(paste(data_dir, 'TM_SoilExtractionData.txt', sep='/'))
+```
+
+### Fix data taxonomic data
+```{r}
+taxonomy <- read.table(text = tax, sep = ";", 
+                       fill = T, stringsAsFactors = F)
+taxonomy <- sapply(taxonomy, function(x) sub("\\s?\\w{1}__", "", x, perl = T))
+taxonomy[taxonomy=='' | taxonomy=='Other'] <- NA
+colnames(taxonomy) <- c("Kingdom", "Phylum", "Class", "Order", 
+                        "Family", "Genus")
+rownames(taxonomy) <- rownames(otu)
+```
+
+### Combine sample and soil data
+```{r}
+# create common ID column
+sam$merging_ID <- with(sam, interaction(rep, tmt))
+soil$merging_ID <- paste(rep(1:5,3), rep(c('Time0', '16O', '18O'), each=5), sep='.')
+
+sam <- merge(sam, soil[,c('g.soil.extracted', 'g.soil.tube', 'merging_ID')], all.x=T)
+sam$merging_ID <- NULL
+```
+
+### Combine sample and sample name data to match OTU table
+```{r}
+mapping <- read.delim(paste(data_dir, 'TM_mapping_file.txt', sep='/'))
+sam$sample <- gsub('-', '.', sam$sample)
+sam <- merge(mapping[,c('X.SampleID', 'sample.rep.fration', 'Description')], sam, 
+             by.y='sample', by.x='sample.rep.fration', all.y=T)
+names(sam)[1:3] <- c('sample.rep.fraction', 'SampleID', 'RepID')
+sam <- sam[,c(2,1,3:ncol(sam))]
+rm(mapping)
+
+# Can't have replicate IDs match across treatments
+sam$RepID <- sub('C(.{1})', '\\1.t0', sam$RepID)
+
+# Make time0 data NA in treatment column, add timepoint (10 day incubation)
+sam$tmt <- ifelse(sam$tmt=='Time0', NA, as.character(sam$tmt))
+sam$time <- ifelse(is.na(sam$tmt), 0, 10)
+
+# Samples with NA for SampleID are not in OTU table - remove
+# This amounts to a couple of 16O-18O fractions but mostly fractionated time 0 data 
+# (these were not sequenced, only the whole tubes/replicates at time 0 were)
+sam <- sam[!is.na(sam$SampleID),]
+sam <- sam[order(as.numeric(as.character(sam$SampleID))),]
+sam <- sam[sam$SampleID %in% colnames(otu),]
+rownames(sam) <- sam$SampleID
+
+# Match OTU table sample order to sample data
+otu <- otu[,match(sam$SampleID, colnames(otu))]
+
+# remove extraneous columns
+sam <- sam[,c('SampleID', 'sample.rep.fraction', 'RepID', 
+              'rep', 'tmt', 'density.g.ml', 
+              'qPCR.16S.copies.ul', 'time')]
+
+# create fraction column
+sam$fraction <- sub('(.*)\\.(\\d+)$', '\\2', sam$sample.rep.fraction)
+sam$fraction[sam$time==0] <- NA
+```
+
+### Keep only first 20 OTUs
+```{r}
+otu <- otu[1:20,]
+taxonomy <- taxonomy[1:20,]
+```
+
+### Duplicate data for groups A and B and for timepoint 15
+```{r}
+# first remove replicates 4 and 5 in each treatment
+sam <- sam[!sam$rep %in% 4:5,]
+otu <- otu[,match(sam$SampleID, colnames(otu))]
+
+# duplicate dataset for groups A and B
+sam <- list(A=sam, B=sam)
+sam <- Map(function(x,y) {x$group <- y; x}, sam, names(sam))
+# increase densities for 18O samples in group B
+sam$B <- within(sam$B, {
+  density.g.ml[tmt=='18O' & !is.na(tmt)] <- density.g.ml[tmt=='18O' & !is.na(tmt)] * 1.025
+})
+# combine
+sam <- do.call(rbind, sam)
+
+# duplicate dataset for timepoint 15
+sam_15 <- sam[sam$time==10,]
+# increase qPCR copies and modify timepoint
+sam_15 <- within(sam_15, {
+  qPCR.16S.copies.ul <- floor(qPCR.16S.copies.ul * 1.05)
+  time <- 15
+})
+# combine
+sam <- rbind(sam, sam_15)
+
+# modify RepID and sample.rep.fraction to reflect new groupings
+sam <- within(sam, {
+  RepID <- paste(group, rep, tmt, time, sep='.')
+  RepID <- sub('NA\\.', '', RepID)
+  sample.rep.fraction <- paste(RepID, fraction, sep='.')
+  sample.rep.fraction <- sub('\\.NA', '', sample.rep.fraction)
+})
+
+# duplicate values in OTU table
+otu <- otu[,match(sam$SampleID, colnames(otu))]
+
+# rename otu colnames, sam rownames, and sam$SampleID
+sam$SampleID <- 1:nrow(sam)
+rownames(sam) <- sam$sample.rep.fraction
+colnames(otu) <- sam$sample.rep.fraction
+```
+
+### Create phylosphere object and long-form data frame
+```{r}
+# md for "mock data"
+md <- phyloseq(otu_table(otu, taxa_are_rows=T),
+               tax_table(taxonomy),
+               sample_data(sam))
+
+# create long-form data frame
+mdl <- psmelt(md)
+```
+
+---
+
+## Scheme for qSIP calculations
+
+There are several binary decisions to make in how to group a qSIP data set. Each calculation will be given a designation based off binary numbers, with the largest (left-most) digit reponsible for the largest grouping decision. **Note:** To allow for the flexibility of these options, the ID code for each replicate (tube) **_must_** be 100% unique. It **_cannot_** be shared with *any* other replicate in any other time or group. Other than that, different requirements for sample matching and missing data apply to each situation.
+
+### Enrichment
+
+|Group|Label|Light| |Meaning|Code|
+|---:|---:|---:|-|:----------------------------------------------------|--:|
+| 0 | 0 | 0 | | Average across groups, run with averaged label and averaged light values | 000 |
+| 0 | 0 | 1 | | Average across groups, run with averaged label and separate light values | 001 |
+| 0 | 1 | 0 | | Average across groups, run with separate label and averaged light values | 010 |
+| 0 | 1 | 1 | | Average across groups, run with separate label and separate light values | 011 |
+| 1 | 0 | 0 | | Average *per* group, run with averaged label and averaged light values | 100 |
+| 1 | 0 | 1 | | Average *per* group, run with averaged label and separate light values | 101 |
+| 1 | 1 | 0 | | Average *per* group, run with separate label and averaged light values | 110 |
+| 1 | 1 | 1 | | Average *per* group, run with separate label and separate light values | 111 |
+
+
+### Growth
+
+Similar but the with four binary digits (*e.g.*, 0110) where the left-most digit corresponds to whether different timepoints are to be analyzed sequentially, or each with respect to 0. Timepoints can't be ignored in growth calculations, so separating them is more akin to separating heavy and light WADs (necessary) rather than averaging replicates or keeping them separate (user preference).
+
+<!--
+|Time|Group|Label|Light| |Meaning|Code|
+|---:|---:|---:|---:|-|:----------------------------------------------------|--:|
+| 0 | 0 | 0 | 0 | | Average across timepoints and groups, run with averaged label and averaged light values | 0000 |
+| 0 | 0 | 0 | 1 | | Average across timepoints and groups, run with averaged label and separate light values | 0001 |
+| 0 | 0 | 1 | 0 | | Average across timepoints and groups, run with separate label and averaged light values | 0010 |
+| 0 | 0 | 1 | 1 | | Average across timepoints and groups, run with separate label and separate light values | 0011 |
+| 0 | 1 | 0 | 0 | | Average across timepoints and *per* group, run with averaged label and averaged light values | 0100 |
+| 0 | 1 | 0 | 1 | | Average across timepoints and *per* group, run with averaged label and separate light values | 0101 |
+| 0 | 1 | 1 | 0 | | Average across timepoints and *per* group, run with separate label and averaged light values | 0110 |
+| 0 | 1 | 1 | 1 | | Average across timepoints and *per* group, run with separate label and separate light values | 0111 |
+| 1 | 0 | 0 | 0 | | Average *per* timepoint and across groups, run with averaged label and averaged light values | 1000 |
+| 1 | 0 | 0 | 1 | | Average *per* timepoint and across groups, run with averaged label and separate light values | 1001 |
+| 1 | 0 | 1 | 0 | | Average *per* timepoint and across groups, run with separate label and averaged light values | 1010 |
+| 1 | 0 | 1 | 1 | | Average *per* timepoint and across groups, run with separate label and separate light values | 1011 |
+| 1 | 1 | 0 | 0 | | Average *per* timepoint and group, run with averaged label and averaged light values | 1100 |
+| 1 | 1 | 0 | 1 | | Average *per* timepoint and group, run with averaged label and separate light values | 1101 |
+| 1 | 1 | 1 | 0 | | Average *per* timepoint and group, run with separate label and averaged light values | 1110 |
+| 1 | 1 | 1 | 1 | | Average *per* timepoint and group, run with separate label and separate light values | 1111 |
+-->
+
+## Testing WADs
+
+The calculation codes don't apply to the WADs. With the exception of filtering, which is not done here, WAD values are calculated one way.
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+source('test_wads.R')
+# returns wads object
+
+# plot qSIP output against manual output
+ggplot(wads, aes(wad_manual, wad_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(wads$wad_manual, wads$wad_qsip)), 
+       max(c(wads$wad_manual, wads$wad_qsip))) +
+  ylim(min(c(wads$wad_manual, wads$wad_qsip)), 
+       max(c(wads$wad_manual, wads$wad_qsip))) +
+  labs(title='Comparison of WAD values')
+```
+
+## Testing MWs
+
+Here the calculation codes begin to take effect as grouping begins to take place.
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+source('test_mw_000.R')
+# returns mw_000 object
+
+# plot qSIP output against manual output
+ggplot(mw_000, aes(mw_manual, mw_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(mw_000$mw_manual, mw_000$mw_qsip)), 
+       max(c(mw_000$mw_manual, mw_000$mw_qsip))) +
+  ylim(min(c(mw_000$mw_manual, mw_000$mw_qsip)), 
+       max(c(mw_000$mw_manual, mw_000$mw_qsip))) +
+  labs(title='Comparison of MW values', 
+       subtitle='Calculation code: 000')
+```
