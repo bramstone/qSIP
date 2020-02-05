@@ -169,10 +169,6 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
     #
     wh <- split_data(data, wh, iso_h$interaction, grouping_w_phylosip=FALSE, keep_names=1)
     wl <- split_data(data, wl, iso_l$interaction, grouping_w_phylosip=FALSE, keep_names=1)
-    # calculate global (spanning all groups) unlabeled WADs
-    global_wl <- do.call(rbind, wl)
-    global_wl <- colMeans(global_wl, na.rm=TRUE)
-    global_wl[is.nan(global_wl)] <- NA
     #
     if(!separate_label) {
       #
@@ -184,13 +180,12 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         wl <- base::lapply(wl, colMeans, na.rm=TRUE)
         wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
         #
-        # if(global_light=FALSE) {
-        # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
-        # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
-        # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
-        # } else if(global_light=TRUE) {
-        # wl <- base::lapply(wl, function(x) global_wl)
-        # }
+        # evaluate that grouped samples align for comparison
+        # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
+        # replace unlabeled WADs with global averages if specified
+        good_vals <- match_groups(data, wh, wl, iso_group, global_light=global_light)
+        wh <- good_vals[[1]]
+        wl <- good_vals[[2]]
         #
         wh <- do.call(rbind, wh)
         wl <- do.call(rbind, wl)
@@ -212,9 +207,12 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         wh <- base::lapply(wh, colMeans, na.rm=TRUE)
         wh <- base::lapply(wh, function(x) {x[is.nan(x)] <- NA; x})
         #
-        # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
-        # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
-        # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
+        # evaluate that there are data in each group comparison
+        # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
+        # replace unlabeled WADs with global averages if specified
+        good_vals <- match_groups(data, wh, wl, iso_group, global_light=global_light)
+        wh <- good_vals[[1]]
+        wl <- good_vals[[2]]
         #
         # WAD correction
         if(correction) {
@@ -240,13 +238,12 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         wl <- base::lapply(wl, colMeans, na.rm=TRUE)
         wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
         #
-        # if(global_light=FALSE) {
-        # FUNCTION TO CHECK IF ALL GROUPS REPRESENTED
-        # IF LABELED GROUP MISSING, REMOVE CORRESPONDING UNLABELED GROUP
-        # IF UNLABELED GROUP MISSING, REPLACE WITH AVERAGE
-        # } else if(global_unlabel=TRUE) {
-        # wl <- base::lapply(wl, function(x) global_wl)
-        # }
+        # evaluate that there are data in each group comparison
+        # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
+        # replace unlabeled WADs with global averages if specified
+        good_vals <- match_groups(data, wh, wl, iso_group, global_light=global_light)
+        wh <- good_vals[[1]]
+        wl <- good_vals[[2]]
         #
         # WAD correction
         if(correction) {
@@ -268,10 +265,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         # evaluate that individual samples align for comparison
         # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
-        good_vals <- match_reps(data, wh, wl, iso_group, rep_group=FALSE)
+        good_vals <- match_reps(data, wh, wl, iso_group, rep_group=TRUE)
         wh <- good_vals[[1]]
         wl <- good_vals[[2]]
         if(global_light) {
+          global_wl <- do.call(rbind, wl)
+          global_wl <- colMeans(global_wl, na.rm=TRUE)
+          global_wl[is.nan(global_wl)] <- NA
           wl[grepl('light_avg', rownames(wl)),] <- global_wl
         }
         #
@@ -296,6 +296,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   # organize and add new data as S4 matrices
   data <- collate_results(data, mw_h, tax_names=tax_names, 'mw_label', sparse=TRUE)
   data <- collate_results(data, mw_l, tax_names=tax_names, 'mw_light', sparse=TRUE)
+  # add attributes summarizing the calculation method
   output_attr <- c(rep_group=as.logical(length(data@qsip@rep_group)),
                    sep_label=separate_label,
                    sep_light=separate_light)
