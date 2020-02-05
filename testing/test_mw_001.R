@@ -32,7 +32,7 @@ rownames(mw) <- NULL
 
 mw_qsip <- mw
 
-
+((
 
 ############################################
 # manual calculation
@@ -40,7 +40,7 @@ mw_qsip <- mw
 
 # add treatment (isotope) data for grouping
 mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt')]), all.x=T)
-  
+
 # split by treatment group and taxon
 mw <- split(mw, interaction(mw$tmt, mw$OTU))
 
@@ -79,6 +79,6 @@ mw_manual <- mw
 # compare calculations
 ############################################
 
-mw_000 <- merge(mw_qsip, mw_manual[,c('OTU', 'tmt', 'mw')], 
-                by=c('OTU', 'tmt'), 
+mw_000 <- merge(mw_qsip, mw_manual[,c('OTU', 'tmt', 'mw')],
+                by=c('OTU', 'tmt'),
                 suffixes=c('_qsip', '_manual'))
