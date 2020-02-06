@@ -226,12 +226,16 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
   if(rep_group==TRUE) {
     reps$replicate_num <- interaction(reps$grouping, reps$replicate_num)
   }
+  reps$replicate <- as.character(reps$replicate)
   reps2 <- reps
-  reps <- split(grouping, grouping$replicate_num)
-  keep_groups <- !logical(length(reps))
-  for(n in length(reps)) {
+  reps <- split(reps, reps$replicate_num)
+  issues <- vector('logical', length(reps))
+  for(n in 1:length(reps)) {
+    options(warn=1)
     n_light <- reps[[n]][as.numeric(reps[[n]]$iso)==1,]
     n_label <- reps[[n]][as.numeric(reps[[n]]$iso)==2,]
+    #
+    # check unlabeled
     if(nrow(n_light)==0) {
       if(rep_group==FALSE) {
         # use global averages
@@ -243,35 +247,41 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
         wl_av <- colMeans(wad_light[reps2$grouping==group_n,], na.rm=TRUE)
         wl_av[is.nan(wl_av)] <- NA
       }
+      warning('Missing unlabeled replicate to compare against ',
+              reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2],
+              '\nUsing average of unlabeled replicates', call.=FALSE)
       reps[[n]] <- rbind(reps[[n]],
-                         c(replicate=paste0('light_avg_', names(reps)[n]),
+                         c(replicate=paste(levels(grouping$iso)[1], 'avg', sep='.'),
                            iso=levels(grouping$iso)[1],
                            grouping=1,
                            interaction=paste0(levels(grouping$iso)[1], '.1')))
       wad_light <- rbind(wad_light, wl_av)
-      rownames(wad_light)[grepl('wl_av')] <- paste0(levels(grouping$iso)[1], '.1')
-      warning('Missing unlabeled replicate to compare against ',
-              reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2],
-              '\nUsing average of unlabeled replicates', call.=FALSE)
+      rownames(wad_light)[grepl('wl_av', rownames(wad_light))] <- paste(levels(grouping$iso)[1], 'avg', sep='.')
       #
     } else if(nrow(n_light) > 1) {
       # if duplicated light values, average and combine
       light_duplicated <- reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==1]
+      warning('Duplicate unlabeled replicates: ', paste(light_duplicated, collapse=', '),
+              '\nMatched to replicate: ', names(reps)[n],
+              '. Using average of duplicates', call.=FALSE)
       wl_av <- wad_light[light_duplicated,]
       wl_av <- colMeans(wl_av, na.rm=T)
       wl_av[is.nan(wl_av)] <- NA
-      reps[[n]] <- rbind(reps[[n]][as.numeric(reps[[n]]$iso)==2,],
-                         c(replicate=paste0('light_avg_', names(reps)[n]),
+      reps[[n]] <- rbind(reps[[n]],
+                         c(replicate=paste(levels(grouping$iso)[1], names(reps)[n], sep='.'),
                            iso=levels(grouping$iso)[1],
                            grouping=1,
-                           interaction=paste0(levels(grouping$iso)[1], '.1')))
+                           interaction=paste0(levels(grouping$iso)[1], '.1'),
+                           replicate_num=n))
+      reps[[n]] <- reps[[n]][!reps[[n]]$replicate %in% light_duplicated,]
       wad_light <- rbind(wad_light, wl_av)
-      rownames(wad_light)[grepl('wl_av')] <- paste0(levels(grouping$iso)[1], '.1')
-      warning('Duplicate unlabeled replicates: ',
-              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==1], collapse=', '),
-              '\nUsing average of duplicates', call.=FALSE)
+      rownames(wad_light)[grepl('wl_av', rownames(wad_light))] <- paste(levels(grouping$iso)[1], names(reps)[n], sep='.')
+      issues[n] <- TRUE
       #
-    } else if(nrow(n_label)==0) {
+    }
+    #
+    # check labeled
+    if(nrow(n_label)==0) {
       # remove the unmatched unlabeled value
       warning('Missing labeled replicate',
               '\nRemoving replicates:',
@@ -282,22 +292,26 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
     } else if(nrow(n_label) > 1) {
       # if duplicated label values, average and combine
       label_duplicated <- reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2]
+      warning('Duplicate labeled replicates: ', paste(label_duplicated, collapse=', '),
+              '\nMatched to replicate: ', names(reps)[n],
+              '. Using average of duplicates', call.=FALSE)
       wh_av <- wad_label[label_duplicated,]
       wh_av <- colMeans(wh_av, na.rm=T)
       wh_av[is.nan(wh_av)] <- NA
-      reps[[n]] <- rbind(reps[[n]][as.numeric(reps[[n]]$iso)==2,],
-                         c(replicate=paste0('label_avg_', names(reps)[n]),
+      reps[[n]] <- rbind(reps[[n]],
+                         c(replicate=paste(levels(grouping$iso)[2], names(reps)[n], sep='.'),
                            iso=levels(grouping$iso)[2],
                            grouping=1,
-                           interaction=paste0(levels(grouping$iso)[2], '.1')))
+                           interaction=paste0(levels(grouping$iso)[2], '.1'),
+                           replicate_num=n))
+      reps[[n]] <- reps[[n]][!reps[[n]]$replicate %in% label_duplicated,]
       wad_label <- rbind(wad_label, wh_av)
-      rownames(wad_light)[grepl('wh_av')] <- paste0(levels(grouping$iso)[2], '.1')
-      warning('Duplicate labeled replicates: ',
-              paste(reps[[n]]$replicate[as.numeric(reps[[n]]$iso)==2], collapse=', '),
-              '\nUsing average of duplicates', call.=FALSE)
+      rownames(wad_label)[grepl('wh_av', rownames(wad_label))] <- paste(levels(grouping$iso)[2], names(reps)[n], sep='.')
+      issues[n] <- TRUE
       #
     }
   }
+  if(any(issues)) warning('Check data@qsip@rep_num contains unique names for every treatment and/or group', call.=FALSE)
   reps <- do.call(rbind, reps)
   reps_h <- droplevels(reps[as.numeric(reps$iso)==2,])
   reps_l <- droplevels(reps[as.numeric(reps$iso)==1,])
