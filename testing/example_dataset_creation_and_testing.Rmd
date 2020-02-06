@@ -339,3 +339,23 @@ ggplot(mw_010, aes(mw_manual, mw_qsip)) +
   labs(title='Comparison of MW values', 
        subtitle='Calculation code: 010')
 ```
+
+For calculation code `011`, it was necessary to create a replicate numbering column that matched each ^18^O sample to it's corresponding ^16^O sample. For example, sample `A.1.16O.10` must have the same replicate number as `A.1.18O.10`. With three samples, two groups, and two timepoints, that generated a replicate number from 1 to 12.
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+source('test_mw_011.R')
+# returns mw_011 object
+
+# plot qSIP output against manual output
+ggplot(mw_011, aes(mw_manual, mw_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(mw_011$mw_manual, mw_011$mw_qsip)), 
+       max(c(mw_011$mw_manual, mw_011$mw_qsip))) +
+  ylim(min(c(mw_011$mw_manual, mw_011$mw_qsip)), 
+       max(c(mw_011$mw_manual, mw_011$mw_qsip))) +
+  labs(title='Comparison of MW values', 
+       subtitle='Calculation code: 011')
+```
