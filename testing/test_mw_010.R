@@ -1,5 +1,5 @@
 # Testing of the calculation of MW values between qSIP package and manual
-# calculation code: 001
+# calculation code: 010
 
 ############################################
 # qsip package
@@ -13,13 +13,15 @@ mdq <- specify_qsip(md,
                     iso_trt='tmt')
 
 # calculate WADs
-mdq <- calc_mw(mdq, separate_label=F, separate_light=T)
+mdq <- calc_mw(mdq, separate_label=T, separate_light=F)
 
 mwh <- mat_to_df(mdq@qsip[['mw_label']], 'mw_label')
-mwl <- mat_to_df(mdq@qsip[['mw_light']], 'mw_light')
+mwl <- data.frame(OTU=names(mdq@qsip[['mw_light']]),
+                  mw_light=mdq@qsip[['mw_light']],
+                  stringsAsFactors=F)
 
 # convert to data frame, use c() to remove attributes
-mw <- merge(mwh, mwl, by=c('RepID', 'OTU'))
+mw <- merge(mwh, mwl, by='OTU', all.x=T)
 
 mw <- reshape(mw,
               idvar=c('RepID', 'OTU'),
@@ -44,11 +46,11 @@ mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt')]), all.x=T)
 mwh <- mw[mw$tmt=='18O',]
 mwl <- mw[mw$tmt=='16O',]
 
-# average heavy WADs
-mwh <- aggregate(wad ~ OTU, mwh, mean)
+# average light WADs
+mwl <- aggregate(wad ~ OTU, mwl, mean)
 
 # merge back in, disregarding treatment
-mw <- merge(mwh, mwl[,!names(mwl) %in% 'tmt'], by='OTU', all.y=T, suffixes=c('_label', '_light'))
+mw <- merge(mwh[,!names(mwh) %in% 'tmt'], mwl, by='OTU', all.y=T, suffixes=c('_label', '_light'))
 
 # calculate MWs
 mw <- within(mw, {
@@ -77,6 +79,6 @@ mw_manual <- mw
 # compare calculations
 ############################################
 
-mw_001 <- merge(mw_qsip, mw_manual,
+mw_010 <- merge(mw_qsip, mw_manual,
                 by=c('OTU', 'RepID', 'tmt'),
                 suffixes=c('_qsip', '_manual'))

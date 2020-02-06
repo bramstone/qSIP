@@ -40,7 +40,7 @@ mw_qsip <- mw
 
 # add treatment (isotope) data for grouping
 mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt')]), all.x=T)
-  
+
 # split by treatment group and taxon
 mw <- split(mw, interaction(mw$tmt, mw$OTU))
 
@@ -52,25 +52,25 @@ mw <- lapply(mw, function(x) {
 })
 
 # separate light and heavy MWs
-mw_l <- mw[grep('16O', names(mw))]
-mw_h <- mw[grep('18O', names(mw))]
+mwl <- mw[grep('16O', names(mw))]
+mwh <- mw[grep('18O', names(mw))]
 
 # calculate MW-light
-mw_l <- lapply(mw_l, function(x) {
+mwl <- lapply(mwl, function(x) {
   gc <- (1 / 0.083506) * (x$wad - 1.646057)
   x$mw <- (0.496 * gc) + 307.691
   x
 })
 
 # calculate MW-heavy
-mw_h <- Map(function(x,y) {
+mwh <- Map(function(x,y) {
   x$mw <- (((x$wad - y$wad)/y$wad) + 1) * y$mw
   x
-}, mw_h, mw_l)
+}, mwh, mwl)
 
 # combine
-mw <- rbind(do.call(rbind, mw_l),
-            do.call(rbind, mw_h))
+mw <- rbind(do.call(rbind, mwl),
+            do.call(rbind, mwh))
 rownames(mw) <- NULL
 mw_manual <- mw
 
@@ -79,6 +79,6 @@ mw_manual <- mw
 # compare calculations
 ############################################
 
-mw_000 <- merge(mw_qsip, mw_manual[,c('OTU', 'tmt', 'mw')], 
-                by=c('OTU', 'tmt'), 
+mw_000 <- merge(mw_qsip, mw_manual[,c('OTU', 'tmt', 'mw')],
+                by=c('OTU', 'tmt'),
                 suffixes=c('_qsip', '_manual'))

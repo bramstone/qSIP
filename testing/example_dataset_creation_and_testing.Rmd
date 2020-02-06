@@ -263,10 +263,10 @@ Similar but the with four binary digits (*e.g.*, 0110) where the left-most digit
 
 ## Testing WADs
 
-The calculation codes don't apply to the WADs. With the exception of filtering, which is not done here, WAD values are calculated one way.
+The calculation codes don't apply to the WADs. With the exception of filtering, which is not done here, WAD values are calculated one way. Note that it was important to re-relativize the abundances of the 20 taxa. In the qsip package code, this is the default action. Since abundances were already relativized, and most taxa were removed prior to the calculation, it is important to not skip this step.
 
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
-source('testing/test_wads.R')
+source('test_wads.R')
 # returns wads object
 
 # plot qSIP output against manual output
@@ -287,7 +287,7 @@ ggplot(wads, aes(wad_manual, wad_qsip)) +
 Here the calculation codes begin to take effect as grouping begins to take place.
 
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
-source('testing/test_mw_000.R')
+source('test_mw_000.R')
 # returns mw_000 object
 
 # plot qSIP output against manual output
@@ -302,4 +302,40 @@ ggplot(mw_000, aes(mw_manual, mw_qsip)) +
        max(c(mw_000$mw_manual, mw_000$mw_qsip))) +
   labs(title='Comparison of MW values', 
        subtitle='Calculation code: 000')
+```
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+source('test_mw_001.R')
+# returns mw_001 object
+
+# plot qSIP output against manual output
+ggplot(mw_001, aes(mw_manual, mw_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(mw_001$mw_manual, mw_001$mw_qsip)), 
+       max(c(mw_001$mw_manual, mw_001$mw_qsip))) +
+  ylim(min(c(mw_001$mw_manual, mw_001$mw_qsip)), 
+       max(c(mw_001$mw_manual, mw_001$mw_qsip))) +
+  labs(title='Comparison of MW values', 
+       subtitle='Calculation code: 001')
+```
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+source('test_mw_010.R')
+# returns mw_010 object
+
+# plot qSIP output against manual output
+ggplot(mw_010, aes(mw_manual, mw_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(mw_010$mw_manual, mw_010$mw_qsip)), 
+       max(c(mw_010$mw_manual, mw_010$mw_qsip))) +
+  ylim(min(c(mw_010$mw_manual, mw_010$mw_qsip)), 
+       max(c(mw_010$mw_manual, mw_010$mw_qsip))) +
+  labs(title='Comparison of MW values', 
+       subtitle='Calculation code: 010')
 ```
