@@ -322,7 +322,7 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
 
 # function which tests label and light values for matching groups
 match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALSE) {
-  groups <- unique(iso_group[,c('iso', 'grouping', 'interaction')])
+  groups <- unique(grouping[,c('iso', 'grouping', 'interaction')])
   groups2 <- groups
   groups <- split(groups, groups$grouping)
   keep_groups <- !logical(length(groups))
