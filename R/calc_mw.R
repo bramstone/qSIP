@@ -187,8 +187,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         wl <- base::lapply(wl, function(x) {x[is.nan(x)] <- NA; x})
         #
         # evaluate that grouped samples align for comparison
-        # remove comparisons with missing labeled samples, replace unlabeled samples with global unlabeled average
-        good_vals <- match_groups(data, wh, wl, iso_group)
+        # separately, global light will just replace ALL unlabeled WADs with the global average
+        good_vals <- match_groups(data, wh, wl, iso_group, global_light=global_light)
         wh <- good_vals[[1]]
         wl <- good_vals[[2]]
         #
@@ -214,7 +214,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         # evaluate that there are data in each group comparison
         # remove comparisons with missing labeled samples, replace unlabeled samples with global unlabeled average
-        good_vals <- match_groups(data, wh, wl, iso_group)
+        # separately, global light will just replace ALL unlabeled WADs with the global average
+        good_vals <- match_groups(data, wh, wl, iso_group, global_light=global_light)
         wh <- good_vals[[1]]
         wl <- good_vals[[2]]
         #
@@ -245,7 +246,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         #
         # evaluate that there are data in each group comparison
         # remove comparisons with missing labeled samples, replace unlabeled groups with global average
-        good_vals <- match_groups(data, wh, wl, iso_group)
+        # separately, global light will just replace ALL unlabeled WADs with the global average
+        good_vals <- match_groups(data, wh, wl, iso_group, global_light=global_light)
         wh <- good_vals[[1]]
         wl <- good_vals[[2]]
         #
