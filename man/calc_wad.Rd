@@ -5,25 +5,29 @@
 \title{Calculation of weighted average densities}
 \usage{
 calc_wad(data, filter = FALSE, pool_unlabeled = TRUE,
-  calc_wvd = FALSE)
+  calc_wvd = FALSE, rel_abund = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phylosip} object}
 
-\item{filter}{Logical vector specifying whether or not to filter taxa from the weighted average density calculation.
+\item{filter}{Logical value specifying whether or not to filter taxa from the weighted average density calculation.
 A hard filter is applied for \code{calc_wad} (meaning taxa are removed from all replicates/groups if they don't meet threshold).
 Note, however, that this will have different outcomes depending on whether or not \code{filter_qsip} has been called
 before calculations or not (see \code{details})}
 
-\item{pool_unlabeled}{Logical vector specifying if unlabeled replicates should be pooled together across any grouping factor prior
+\item{pool_unlabeled}{Logical value specifying if unlabeled replicates should be pooled together across any grouping factor prior
 to filtering. If \code{TRUE} (the default), unlabeled replicates will be pooled, and any soft filtering threshold will be applied to
 \emph{all} unlabeled replicates together.}
 
-\item{calc_wvd}{Logical vector specifying whether or not to calculate weighted variance of densities (WVD).
+\item{calc_wvd}{Logical value specifying whether or not to calculate weighted variance of densities (WVD).
 The weighted variance of densities of a taxon within a replicate is the complement to its weighted average.
 It describes how much variance exists around every given weighted average density.
 If \code{TRUE}, another output matrix (\code{wvd}) will be returned with identical dimensions to the weighted average
 density output.}
+
+\item{rel_abund}{Logical value specifying whether or not to relativize the abundances in the \code{otu_table}. Relative abundances
+are calculated \emph{before} filtering takes place. If relative abundances are already calculated, or if extensive filtering of taxa has
+already taken place, then this may be set to \code{FALSE}.}
 }
 \value{
 \code{calc_wad} adds an S4 Matrix class (which more efficiently stores sparse matrix data) to the \code{.Data} slot within

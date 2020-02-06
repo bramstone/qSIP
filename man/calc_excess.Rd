@@ -7,7 +7,7 @@
 calc_excess(data, ci_method = c("", "bootstrap"), ci = 0.95,
   iters = 999, filter = FALSE, correction = FALSE,
   offset_taxa = 0.1, separate_light = FALSE, separate_label = TRUE,
-  global_light = FALSE, recalc = TRUE)
+  global_light = FALSE, rel_abund = TRUE, recalc = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -39,6 +39,9 @@ representing it's genetic molecular weight as a result of isotope addition. The 
 
 \item{global_light}{Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
 all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.}
+
+\item{rel_abund}{Logical value specifying if relative abundances of taxa are to be calculated prior to calculations. The default is \code{TRUE}.
+This parameter is passed to \code{calc_wad}.}
 
 \item{recalc}{Logical value indicating whether or not to recalculate WAD and molecular weight values or use existing values. Default is \code{TRUE}.
 Using bootstrapped calculations will automatically recalculate all values.}

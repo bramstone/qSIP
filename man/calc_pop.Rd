@@ -8,7 +8,8 @@ calc_pop(data, ci_method = c("", "bootstrap", "bayesian"), ci = 0.95,
   iters = 999, filter = FALSE, growth_model = c("exponential",
   "linear"), mu = 0.6, correction = FALSE, offset_taxa = 0.1,
   max_label = 1, separate_light = FALSE, separate_label = TRUE,
-  match_replicate = FALSE, rm_light_abund = FALSE, recalc = TRUE)
+  match_replicate = FALSE, rm_light_abund = FALSE, rel_abund = TRUE,
+  recalc = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -55,6 +56,9 @@ each group of replicates (\code{FALSE}, the default). Requires that replicate ma
 \item{rm_light_abund}{Logical value indicating whether to remove the abundance of taxa from light replicates (\code{TRUE}) and average abundances at
 time \emph{t} only from labeled replicates. The alternative (value of \code{FALSE}) is to average abundances at time \emph{t} using all replicates,
 labeled and unlabeled which is the default action.}
+
+\item{rel_abund}{Logical value specifying if relative abundances of taxa are to be calculated prior to calculations. The default is \code{TRUE}.
+This parameter is passed to \code{calc_wad}.}
 
 \item{recalc}{Logical value indicating whether or not to recalculate WAD and molecular weight values or use existing values. Default is \code{TRUE}.
 Using bootstrapped calculations will automatically recalculate all values.}

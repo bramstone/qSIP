@@ -6,7 +6,7 @@
 \usage{
 calc_mw(data, filter = FALSE, correction = FALSE, offset_taxa = 0.1,
   separate_light = FALSE, separate_label = TRUE,
-  global_light = FALSE, recalc = TRUE)
+  global_light = FALSE, recalc = TRUE, rel_abund = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -32,6 +32,9 @@ representing it's genetic molecular weight as a result of isotope addition. The 
 all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.}
 
 \item{recalc}{Logical value indicating whether or not to recalculate WAD, WAD heavy, and WAD light values or use existing values. Default is \code{TRUE}.}
+
+\item{rel_abund}{Logical value specifying if relative abundances of taxa are to be calculated prior to calculations. The default is \code{TRUE}.
+This parameter is passed to \code{calc_wad}.}
 }
 \value{
 \code{calc_mw} adds three S4 Matrix class objects (which more efficiently stores sparse matrix data) to the \code{data@qsip@.Data} slot
