@@ -3,18 +3,21 @@
 #' Calculates weighted average densities for each microbial taxa in each sample replicate
 #'
 #' @param data Data as a \code{phylosip} object
-#' @param filter Logical vector specifying whether or not to filter taxa from the weighted average density calculation.
+#' @param filter Logical value specifying whether or not to filter taxa from the weighted average density calculation.
 #'   A hard filter is applied for \code{calc_wad} (meaning taxa are removed from all replicates/groups if they don't meet threshold).
 #'   Note, however, that this will have different outcomes depending on whether or not \code{filter_qsip} has been called
 #'   before calculations or not (see \code{details})
-#' @param pool_unlabeled Logical vector specifying if unlabeled replicates should be pooled together across any grouping factor prior
+#' @param pool_unlabeled Logical value specifying if unlabeled replicates should be pooled together across any grouping factor prior
 #'   to filtering. If \code{TRUE} (the default), unlabeled replicates will be pooled, and any soft filtering threshold will be applied to
 #'   \emph{all} unlabeled replicates together.
-#' @param calc_wvd Logical vector specifying whether or not to calculate weighted variance of densities (WVD).
+#' @param calc_wvd Logical value specifying whether or not to calculate weighted variance of densities (WVD).
 #'   The weighted variance of densities of a taxon within a replicate is the complement to its weighted average.
 #'   It describes how much variance exists around every given weighted average density.
 #'   If \code{TRUE}, another output matrix (\code{wvd}) will be returned with identical dimensions to the weighted average
 #'   density output.
+#' @param rel_abund Logical value specifying whether or not to relativize the abundances in the \code{otu_table}. Relative abundances
+#'   are calculated \emph{before} filtering takes place. If relative abundances are already calculated, or if extensive filtering of taxa has
+#'   already taken place, then this may be set to \code{FALSE}.
 #'
 #' @details Specifying \code{na.rm=TRUE} will allow \code{calc_wad} to calculate weighted average density values from samples
 #'   that have one or more fractions without a valid density value. The default setting, \code{na.rm=FALSE}, returns values
@@ -58,12 +61,12 @@
 #'
 #' @export
 
-calc_wad <- function(data, filter=FALSE, pool_unlabeled=TRUE, calc_wvd=FALSE) {
+calc_wad <- function(data, filter=FALSE, pool_unlabeled=TRUE, calc_wvd=FALSE, rel_abund=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   if(length(data@qsip@rep_id)==0) stop('Must specify replicate IDs with rep_id')
   # transform sequencing abundances to 16S copy numbers
   # returns matrix with taxa as columns, samples as rows
-  ft <- pa <- copy_no(data)
+  ft <- pa <- copy_no(data, rel_abund=rel_abund)
   pa <- ceiling(pa/max(pa, na.rm=T))
   storage.mode(pa) <- 'integer'
   n_taxa <- ncol(ft)

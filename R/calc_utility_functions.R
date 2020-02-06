@@ -2,11 +2,12 @@
 
 # Calculation of 16S copies per taxon from relative abundances and 16S copy numbers
 # Note, will return a feature table with taxa as columns
-copy_no <- function(data) {
+copy_no <- function(data, rel_abund=TRUE) {
   ft <- as(data@otu_table, 'matrix')
-  # make relative abundances with taxa as columns and samples as rows
+  # make taxa columns and samples rows
   if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
-  ft <- ft / base::rowSums(ft, na.rm=TRUE)
+  # relative abundances
+  if(rel_abund) ft <- ft / base::rowSums(ft, na.rm=TRUE)
   # multiply by total 16S copy number per sample
   ft <- ft * data@sam_data[[data@qsip@abund]]
   ft[is.nan(ft)] <- 0

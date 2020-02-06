@@ -22,6 +22,8 @@
 #'   representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}.
 #' @param global_light Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
 #'   all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.
+#' @param rel_abund Logical value specifying if relative abundances of taxa are to be calculated prior to calculations. The default is \code{TRUE}.
+#'   This parameter is passed to \code{calc_wad}.
 #' @param recalc Logical value indicating whether or not to recalculate WAD and molecular weight values or use existing values. Default is \code{TRUE}.
 #'   Using bootstrapped calculations will automatically recalculate all values.
 #'
@@ -85,7 +87,7 @@
 #' @export
 
 calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, filter=FALSE, correction=FALSE, offset_taxa=0.1,
-                       separate_light=FALSE, separate_label=TRUE, global_light=FALSE, recalc=TRUE) {
+                       separate_light=FALSE, separate_label=TRUE, global_light=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   ci_method <- match.arg(tolower(ci_method), c('', 'none', 'bootstrap'))
   # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
@@ -114,7 +116,7 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
     # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_mw)
     if(recalc | is.null(data@qsip[['mw_label']])) {
       data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
-                      separate_label=separate_label, global_light=global_light, recalc=TRUE)
+                      separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
     }
     # extract MW-labeled and convert to S3 matrix with taxa as columns
     mw_h <- data@qsip[['mw_label']]
@@ -167,7 +169,7 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
     #
   } else if(ci_method=='bootstrap') {
     # Calc WADs
-    data <- suppressWarnings(calc_wad(data, filter=filter))
+    data <- suppressWarnings(calc_wad(data, filter=filter, rel_abund=rel_abund))
     ft <- data@qsip[['wad']]
     if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
     n_taxa <- ncol(ft)

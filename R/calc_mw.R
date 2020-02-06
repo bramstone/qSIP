@@ -17,6 +17,8 @@
 #'   representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}.
 #' @param global_light Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
 #'   all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.
+#' @param rel_abund Logical value specifying if relative abundances of taxa are to be calculated prior to calculations. The default is \code{TRUE}.
+#'   This parameter is passed to \code{calc_wad}.
 #' @param recalc Logical value indicating whether or not to recalculate WAD, WAD heavy, and WAD light values or use existing values. Default is \code{TRUE}.
 #'
 #' @details Some details about proper isotope control-treatment factoring. If weighted average densities or the change in weighted average densities
@@ -53,13 +55,14 @@
 #'
 #' @export
 
-calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE, global_light=FALSE, recalc=TRUE) {
+calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE,
+                    global_light=FALSE, recalc=TRUE, rel_abund=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   if(separate_label && separate_light) stop('Must specify replicate matching with data@qsip@rep_num', call.=FALSE)
   # if WAD values don't exist, or if recalculation wanted, calculate those first
   # this will also handle rep_id validity (through calc_wad)
   if(recalc | is.null(data@qsip[['wad']])) {
-    data <- calc_wad(data, filter=filter)
+    data <- calc_wad(data, filter=filter, rel_abund=rel_abund)
   }
   # extract WAD values and convert to S3 matrix
   ft <- data@qsip[['wad']]

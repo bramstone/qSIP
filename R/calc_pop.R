@@ -33,6 +33,8 @@
 #' @param rm_light_abund Logical value indicating whether to remove the abundance of taxa from light replicates (\code{TRUE}) and average abundances at
 #'   time \emph{t} only from labeled replicates. The alternative (value of \code{FALSE}) is to average abundances at time \emph{t} using all replicates,
 #'   labeled and unlabeled which is the default action.
+#' @param rel_abund Logical value specifying if relative abundances of taxa are to be calculated prior to calculations. The default is \code{TRUE}.
+#'   This parameter is passed to \code{calc_wad}.
 #' @param recalc Logical value indicating whether or not to recalculate WAD and molecular weight values or use existing values. Default is \code{TRUE}.
 #'   Using bootstrapped calculations will automatically recalculate all values.
 #'
@@ -76,7 +78,7 @@
 # NOTE: MAX_LABEL IS NOT CURRENTLY IMPLEMENTED IN THE CALCULATIONS. NEED TO LOOK AT BEST WAY TO DO THIS.
 calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, iters=999, filter=FALSE, growth_model=c('exponential', 'linear'),
                      mu=0.6, correction=FALSE, offset_taxa=0.1, max_label=1, separate_light=FALSE, separate_label=TRUE, match_replicate=FALSE,
-                     rm_light_abund=FALSE, recalc=TRUE) {
+                     rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object', call.=FALSE)
   ci_method <- match.arg(tolower(ci_method), c('', 'bootstrap', 'bayesian'))
   growth_model <- match.arg(tolower(growth_model), c('exponential', 'linear'))
@@ -100,6 +102,7 @@ calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, ite
                                        offset_taxa=offset_taxa,
                                        separate_light=separate_light,
                                        separate_label=separate_label,
+                                       rel_abund=rel_abund,
                                        recalc=TRUE))
     }
     # transform sequencing abundances to 16S copy numbers
@@ -268,7 +271,7 @@ calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, ite
   #
   } else if(ci_method=='bootstrap') {
     # calculate and create subsampling criteria for WADs......................................
-    data <- suppressWarnings(calc_wad(data, filter=filter))
+    data <- suppressWarnings(calc_wad(data, filter=filter, rel_abund=rel_abund))
     wads <- as(data@qsip[['wad']], 'matrix')
     if(phyloseq::taxa_are_rows(data)) wads <- t(wads)
     n_taxa <- ncol(wads)
@@ -346,11 +349,6 @@ calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, ite
       rownames(wads_i) <- sam_names_wads
       # calc diff_WADs, MWs, and N values
       data <- suppressWarnings(collate_results(data, wads_i, tax_names=tax_names, 'wad', sparse=TRUE))
-      data <- suppressWarnings(calc_d_wad(data, correction=correction,
-                                          offset_taxa=offset_taxa,
-                                          separate_label=FALSE,
-                                          separate_light=FALSE,
-                                          recalc=FALSE))
       data <- suppressWarnings(calc_mw(data,
                                        separate_label=FALSE,
                                        separate_light=FALSE,
