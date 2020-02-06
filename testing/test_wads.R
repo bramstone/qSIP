@@ -24,8 +24,13 @@ wads_qsip <- wads[!is.na(wads$wad),]
 # manual calculation
 ############################################
 
+# first, re-calculate relative abundances, since that's what the calc_wad function does
+wads <- split(mdl, mdl$Sample)
+wads <- lapply(wads, function(x) {x$Abundance <-  x$Abundance / sum(x$Abundance, na.rm=T); x})
+wads <- do.call(rbind, wads)
+
 # split by sample/replicate and taxon
-wads <- split(mdl, interaction(mdl$RepID, mdl$OTU))
+wads <- split(wads, interaction(wads$RepID, wads$OTU))
 
 # If any sample has NA for density, make those qPCR abundances NA as well
 # calculate relative abundance of each taxa in each fraction

@@ -266,7 +266,7 @@ Similar but the with four binary digits (*e.g.*, 0110) where the left-most digit
 The calculation codes don't apply to the WADs. With the exception of filtering, which is not done here, WAD values are calculated one way.
 
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
-source('test_wads.R')
+source('testing/test_wads.R')
 # returns wads object
 
 # plot qSIP output against manual output
@@ -287,7 +287,7 @@ ggplot(wads, aes(wad_manual, wad_qsip)) +
 Here the calculation codes begin to take effect as grouping begins to take place.
 
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
-source('test_mw_000.R')
+source('testing/test_mw_000.R')
 # returns mw_000 object
 
 # plot qSIP output against manual output
