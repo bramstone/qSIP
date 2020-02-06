@@ -58,7 +58,9 @@
 calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separate_light=FALSE, separate_label=TRUE,
                     global_light=FALSE, recalc=TRUE, rel_abund=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
-  if(separate_label && separate_light) stop('Must specify replicate matching with data@qsip@rep_num', call.=FALSE)
+  if(separate_label && separate_light && length(data@qsip@rep_num)==0) {
+    stop('Must specify replicate matching with data@qsip@rep_num', call.=FALSE)
+  }
   # if WAD values don't exist, or if recalculation wanted, calculate those first
   # this will also handle rep_id validity (through calc_wad)
   if(recalc | is.null(data@qsip[['wad']])) {
