@@ -364,6 +364,6 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
   groups_h <- droplevels(groups[as.numeric(groups$iso)==2,])
   groups_l <- droplevels(groups[as.numeric(groups$iso)==1,])
   #
-  return(list(wad_label[[match(groups_h$interaction, names(wad_label))]],
-              wad_light[[match(groups_l$interaction, names(wad_light))]]))
+  return(list(wad_label[match(groups_h$interaction, names(wad_label))],
+              wad_light[match(groups_l$interaction, names(wad_light))]))
 }
