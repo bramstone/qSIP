@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=F}
-devtools::install_github('bramstone/qsip', ref='regroup')
+# devtools::install_github('bramstone/qsip', ref='regroup')
 library(phyloseq)
 library(qsip)
 library(ggplot2)
