@@ -327,11 +327,9 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
   groups <- split(groups, groups$grouping)
   keep_groups <- !logical(length(groups))
   #
-  if(global_light==TRUE) {
-    global_wl <- do.call(rbind, wad_label)
-    global_wl <- colMeans(global_wl, na.rm=TRUE)
-    global_wl[is.nan(global_wl)] <- NA
-  }
+  global_wl <- do.call(rbind, wad_light)
+  global_wl <- colMeans(global_wl, na.rm=TRUE)
+  global_wl[is.nan(global_wl)] <- NA
   #
   for(n in 1:length(groups)) {
     n_light <- groups[[n]][as.numeric(groups[[n]]$iso)==1,]
@@ -343,8 +341,8 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
                            c(iso=levels(groups2$iso)[1],
                              grouping=names(groups)[n],
                              interaction=interaction(levels(groups2$iso)[1], names(groups)[n])))
-      wad_light <- c(wad_light, list(global_wl))
-      names(wad_light)[grepl('global_wl')] <- interaction(levels(groups2$iso)[1], names(groups)[n])
+      wad_light <- c(wad_light, list(global_wad_light=global_wl))
+      names(wad_light)[grepl('global_wad_light', names(wad_light))] <- interaction(levels(groups2$iso)[1], names(groups)[n])
       warning('Missing unlabeled group to compare against ',
               groups[[n]]$replicate[as.numeric(groups[[n]]$iso)==2],
               '\nUsing average of unlabeled groups', call.=FALSE)
@@ -363,8 +361,10 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
   #
   if(global_light==TRUE) wad_light <- base::lapply(wad_light, function(x) global_wl)
   groups <- do.call(rbind, groups)
+  groups$interaction <- as.character(groups$interaction)
   groups_h <- droplevels(groups[as.numeric(groups$iso)==2,])
   groups_l <- droplevels(groups[as.numeric(groups$iso)==1,])
+  #
   return(list(wad_label[[match(groups_h$interaction, rownames(wad_label))]],
               wad_light[[match(groups_l$interaction, rownames(wad_light))]]))
 }
