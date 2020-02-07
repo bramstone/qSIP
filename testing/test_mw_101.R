@@ -30,8 +30,7 @@ mw <- reshape(mw,
               direction='long')
 rownames(mw) <- NULL
 
-names(mw)[1] <- 'group'
-mw$group <- sub('(.*)\\.(.*)', '\\2', mw$group)
+mw$group <- sub('^(\\w{1})(.*)', '\\1', mw$RepID)
 
 mw_qsip <- mw
 
@@ -44,42 +43,51 @@ mw_qsip <- mw
 # add treatment (isotope) and group data for grouping
 mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 
-# split by treatment, group, and taxon
-mw <- split(mw, interaction(mw$tmt, mw$group, mw$OTU))
+# separate light and heavy WADs
+mwh <- mw[mw$tmt=='18O',]
+mwl <- mw[mw$tmt=='16O',]
 
-# average WADs, remove replicate data
+
+# split by group
+mwh <- split(mwh, mwh$group)
+mwl <- split(mwl, mwl$group)
+
+# average heavy WADs, remove replicate data
+mwh <- lapply(mwh, function(x) aggregate(wad ~ OTU, x, mean))
+
+# merge light and heavy, disregarding treatment
+mw <- Map(function(x,y) merge(x, y[,!names(y) %in% 'tmt'],
+                              by='OTU',
+                              all.y=T,
+                              suffixes=c('_label', '_light')),
+          mwh, mwl)
+
+# calculate MWs
 mw <- lapply(mw, function(x) {
-  x$wad <-  mean(x$wad, na.rm=T)
-  x$RepID <- NULL
-  x[1,]
+  # MW-light
+  x$gc <- (1 / 0.083506) * (x$wad_light - 1.646057)
+  x$mw_light <- (0.496 * x$gc) + 307.691
+  x$gc <- NULL
+  # MW-label
+  x$mw_label <- (((x$wad_label - x$wad_light) / x$wad_light) + 1) * x$mw_light
+  x
 })
 
-# recombine, then split by group and treatment
+# recombine
+mw <- Map(function(x,y) {x$group <- y; x}, mw, names(mw))
 mw <- do.call(rbind, mw)
-mw <- split(mw, interaction(mw$tmt, mw$group))
 
-# separate light and heavy MWs
-mwl <- mw[grep('16O', names(mw))]
-mwh <- mw[grep('18O', names(mw))]
 
-# calculate MW-light
-mwl <- lapply(mwl, function(x) {
-  gc <- (1 / 0.083506) * (x$wad - 1.646057)
-  x$mw <- (0.496 * gc) + 307.691
-  gc <- NULL
-  x
-})
-
-# calculate MW-heavy across groups
-mwh <- Map(function(x,y) {
-  x$mw <- (((x$wad - y$wad)/y$wad) + 1) * y$mw
-  x
-}, mwh, mwl)
-
-# combine
-mw <- rbind(do.call(rbind, mwl),
-            do.call(rbind, mwh))
+mw <- reshape(mw,
+              idvar=c('RepID', 'OTU', 'group'),
+              varying=list(c('mw_label', 'mw_light')),
+              drop=c('wad_label', 'wad_light'),
+              times=c('18O', '16O'),
+              timevar='tmt',
+              v.names='mw',
+              direction='long')
 rownames(mw) <- NULL
+
 mw_manual <- mw
 
 
@@ -87,6 +95,6 @@ mw_manual <- mw
 # compare calculations
 ############################################
 
-mw_100 <- merge(mw_qsip, mw_manual[,!names(mw_manual) %in% 'wad'],
+mw_101 <- merge(mw_qsip, mw_manual[,!names(mw_manual) %in% 'wad'],
                 by=c('OTU', 'group', 'tmt'),
                 suffixes=c('_qsip', '_manual'))
