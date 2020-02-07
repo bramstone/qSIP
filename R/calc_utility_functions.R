@@ -354,16 +354,17 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
               '\nRemoving group:',
               paste(groups[[n]]$grouping[as.numeric(groups[[n]]$iso)==1], collapse=', '),
               ' - from calculation', call.=FALSE)
-      groups[[n]] <- groups[[n]][0,]
+      # groups[[n]] <- groups[[n]][0,]
+      wad_light[[n]] <- NULL
     }
   }
   #
   if(global_light==TRUE) wad_light <- base::lapply(wad_light, function(x) global_wl)
-  groups <- do.call(rbind, groups)
-  groups$interaction <- as.character(groups$interaction)
-  groups_h <- droplevels(groups[as.numeric(groups$iso)==2,])
-  groups_l <- droplevels(groups[as.numeric(groups$iso)==1,])
-  #
-  return(list(wad_label[match(groups_h$interaction, names(wad_label))],
-              wad_light[match(groups_l$interaction, names(wad_light))]))
+  # groups <- do.call(rbind, groups)
+  # groups$interaction <- as.character(groups$interaction)
+  # groups_h <- droplevels(groups[as.numeric(groups$iso)==2,])
+  # groups_l <- droplevels(groups[as.numeric(groups$iso)==1,])
+  return(list(wad_label, wad_light))
+  # return(list(wad_label[match(groups_h$interaction, names(wad_label))],
+  #             wad_light[match(groups_l$interaction, names(wad_light))]))
 }
