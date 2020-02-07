@@ -47,7 +47,6 @@ mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 mwh <- mw[mw$tmt=='18O',]
 mwl <- mw[mw$tmt=='16O',]
 
-
 # split by group
 mwh <- split(mwh, mwh$group)
 mwl <- split(mwl, mwl$group)
@@ -95,6 +94,6 @@ mw_manual <- mw
 # compare calculations
 ############################################
 
-mw_101 <- merge(mw_qsip, mw_manual[,!names(mw_manual) %in% 'wad'],
+mw_101 <- merge(mw_qsip, mw_manual,
                 by=c('OTU', 'group', 'tmt'),
                 suffixes=c('_qsip', '_manual'))

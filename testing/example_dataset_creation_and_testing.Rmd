@@ -377,3 +377,21 @@ ggplot(mw_100, aes(mw_manual, mw_qsip)) +
   labs(title='Comparison of MW values', 
        subtitle='Calculation code: 100')
 ```
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+source('test_mw_101.R')
+# returns mw_101 object
+
+# plot qSIP output against manual output
+ggplot(mw_101, aes(mw_manual, mw_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(mw_101$mw_manual, mw_101$mw_qsip)), 
+       max(c(mw_101$mw_manual, mw_101$mw_qsip))) +
+  ylim(min(c(mw_101$mw_manual, mw_101$mw_qsip)), 
+       max(c(mw_101$mw_manual, mw_101$mw_qsip))) +
+  labs(title='Comparison of MW values', 
+       subtitle='Calculation code: 101')
+```
