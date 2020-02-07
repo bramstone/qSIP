@@ -233,6 +233,9 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         mw_h <- base::Map('*', mw_h, mw_l)
         shift <- base::Map(function(x, y) sweep(x, 2, y, function(wL, wH) wH - wL), wl, wh)
         #
+        mw_h <- do.call(rbind, mw_h)
+        mw_l <- do.call(rbind, mw_l)
+        #
       }
     } else if(separate_label) {
       # ...........................................
@@ -263,6 +266,10 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
                           wh, wl)
         mw_h <- base::Map('*', mw_h, mw_l)
         shift <- base::Map(function(x, y) sweep(x, 2, y, '-'), wh, wl)
+        #
+        mw_h <- do.call(rbind, mw_h)
+        mw_l <- do.call(rbind, mw_l)
+        #
         # ...........................................
       } else if(separate_light) { # CODE 111
         #
