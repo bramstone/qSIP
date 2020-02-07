@@ -209,9 +209,6 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # ...........................................
       } else if(separate_light) { # CODE 101
         #
-        wh <- base::lapply(wh, colMeans, na.rm=TRUE)
-        wh <- base::lapply(wh, function(x) {x[is.nan(x)] <- NA; x})
-        #
         # evaluate that there are data in each group comparison
         # remove comparisons with missing labeled samples, replace unlabeled samples with global unlabeled average
         # separately, global light will just replace ALL unlabeled WADs with the global average
