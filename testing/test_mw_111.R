@@ -33,19 +33,13 @@ mdq <- specify_qsip(mdq,
 # calculate WADs
 mdq <- calc_mw(mdq, separate_label=T, separate_light=T)
 
-mwh <- mat_to_df(mdq@qsip[['mw_label']], 'mw_label')
-mwl <- mat_to_df(mdq@qsip[['mw_light']], 'mw_light')
+mwh <- mat_to_df(mdq@qsip[['mw_label']], 'mw')
+mwl <- mat_to_df(mdq@qsip[['mw_light']], 'mw')
 
-mw <- merge(mwh, mwl, by=c('RepID', 'OTU'), all.x=T)
+mwh$tmt <- '18O'
+mwl$tmt <- '16O'
 
-mw <- reshape(mw,
-              idvar=c('RepID', 'OTU'),
-              varying=list(c('mw_label', 'mw_light')),
-              times=c('18O', '16O'),
-              timevar='tmt',
-              v.names='mw',
-              direction='long')
-rownames(mw) <- NULL
+mw <- rbind(mwh, mwl)
 
 mw$group <- sub('^(\\w{1})(.*)', '\\1', mw$RepID)
 
@@ -57,19 +51,17 @@ mw_qsip <- mw
 # manual calculation
 ############################################
 
-# add treatment (isotope) and group data for grouping
-mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
+# add treatment (isotope) data, groups, and replicate numbers for grouping
+mw <- merge(wads_man, unique(rep_matching[,c('RepID', 'tmt', 'group', 'rep_number_111')]), all.x=T)
 
 # separate light and heavy WADs
 mwh <- mw[mw$tmt=='18O',]
 mwl <- mw[mw$tmt=='16O',]
 
-# average heavy WADs, remove replicate data
-mwl <- aggregate(wad ~ OTU + group, mwl, mean, na.rm=T)
-
-# merge light and heavy, disregarding treatment
-mw <- merge(mwh[,!names(mwh) %in% 'tmt'], mwl,
-            by=c('OTU', 'group'),
+# merge light and heavy, matching by replicate number, OTU, and group
+mw <- merge(mwh[,!names(mwh) %in% c('tmt', 'RepID')],
+            mwl[,!names(mwh) %in% c('tmt', 'RepID')],
+            by=c('OTU', 'group', 'rep_number_111'),
             all.x=T,
             suffixes=c('_label', '_light'))
 
@@ -84,7 +76,7 @@ mw <- within(mw, {
 })
 
 mw <- reshape(mw,
-              idvar=c('RepID', 'OTU', 'group'),
+              idvar=c('rep_number_111', 'OTU', 'group'),
               varying=list(c('mw_label', 'mw_light')),
               drop=c('wad_label', 'wad_light'),
               times=c('18O', '16O'),
@@ -92,6 +84,12 @@ mw <- reshape(mw,
               v.names='mw',
               direction='long')
 rownames(mw) <- NULL
+
+# get RepID again
+mw <- merge(unique(rep_matching[,c('RepID', 'tmt', 'group', 'rep_number_111')]),
+            mw,
+            all.y=T)
+mw$rep_number_111 <- NULL
 
 mw_manual <- mw
 
