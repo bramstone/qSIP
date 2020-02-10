@@ -359,7 +359,7 @@ match_groups <- function(data, wad_label, wad_light, grouping, global_light=FALS
     }
   }
   #
-  if(global_light==TRUE) wad_light <- base::lapply(wad_light, function(x) global_wl)
+  if(global_light) wad_light <- base::lapply(wad_light, function(x) global_wl)
   # groups <- do.call(rbind, groups)
   # groups$interaction <- as.character(groups$interaction)
   # groups_h <- droplevels(groups[as.numeric(groups$iso)==2,])
