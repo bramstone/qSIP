@@ -1,5 +1,5 @@
 # Testing of the calculation of MW values between qSIP package and manual
-# calculation code: 100
+# calculation code: 101
 
 ############################################
 # qsip package
