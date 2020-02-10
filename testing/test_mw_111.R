@@ -11,18 +11,22 @@ rep_matching <- as(rep_matching, 'data.frame')
 rep_matching <- split(rep_matching, interaction(rep_matching$tmt, rep_matching$group))
 # sapply(rep_matching, nrow) # check row number - 6 in each 16O and 18O in each group
 # add in numbers - NOTE: sample names are aligned alphabetically such that the numbers in each treatment correspond
-rep_matching <- lapply(rep_matching, function(x) {x$rep_number <- 1:nrow(x); x})
+rep_matching <- lapply(rep_matching, function(x) {x$rep_number_111 <- 1:nrow(x); x})
 rep_matching <- do.call(rbind, rep_matching)
 # get into same format as md@sam_data
 rep_matching <- merge(as(md@sam_data, 'data.frame'), rep_matching, all.x=T)
 rep_matching <- rep_matching[match(md@sam_data$sample.rep.fraction, rep_matching$sample.rep.fraction),]
 
-mdq <- specify_qsip(md,
+# combine new replicate numbers with data
+mdq <- md
+mdq@sam_data$rep_number_111 <- rep_matching$rep_number_111
+
+mdq <- specify_qsip(mdq,
                     abund='qPCR.16S.copies.ul',
                     density='density.g.ml',
                     rep_id='RepID',
                     rep_group='group',
-                    rep_num='rep_number',
+                    rep_num='rep_number_111',
                     iso='18O',
                     iso_trt='tmt')
 
