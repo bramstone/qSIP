@@ -218,6 +218,7 @@ recombine_in_order <- function(ft, grouping, n_taxa, condensed_grouping=FALSE) {
   return(temp)
 }
 
+
 # function which tests label and light values for matching replicates
 match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE, global_light=FALSE) {
   reps <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
@@ -315,7 +316,7 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE, gl
   reps <- do.call(rbind, reps)
   reps_h <- droplevels(reps[as.numeric(reps$iso)==2,])
   reps_l <- droplevels(reps[as.numeric(reps$iso)==1,])
-  if(rep_groups) {
+  if(rep_group) {
     wad_label <- do.call(rbind, wad_label)
     wad_light <- do.call(rbind, wad_light)
     if(global_light) {
