@@ -231,7 +231,6 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
   reps <- split(reps, reps$replicate_num)
   issues <- vector('logical', length(reps))
   for(n in 1:length(reps)) {
-    options(warn=1)
     n_light <- reps[[n]][as.numeric(reps[[n]]$iso)==1,]
     n_label <- reps[[n]][as.numeric(reps[[n]]$iso)==2,]
     #
