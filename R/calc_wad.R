@@ -116,6 +116,12 @@ calc_wad <- function(data, filter=FALSE, pool_unlabeled=TRUE, calc_wvd=FALSE, re
     # replicate-treatment grouping filtering
     iso_group <- iso_grouping(data, data@qsip@iso_trt, data@qsip@rep_id, data@qsip@rep_group)
     # check here to see if any replicate IDs are duplicated, which will cause issues down the line
+    # iso_group() doesn't handle de-replicating fractions well in tubes when NA appears in the isotope or group column
+    iso_group$iso_2 <- ifelse(is.na(iso_group$iso), '', iso_group$iso)
+    iso_group$group_2 <- ifelse(is.na(iso_group$group), '', iso_group$group)
+    iso_group$full.interaction <- interaction(iso_group$replicate, iso_group$iso_2, output$grouping_2)
+    iso_group <- iso_group[!duplicated(iso_group$full.interaction) | is.na(iso_group$full.interaction),]
+    #
     replicates <- iso_group$replicate[!is.na(iso_group$replicate)]
     if(any(duplicated(replicates))) {
       stop('Replicate (sample) names duplicated across isotope treatment and/or group. Each replicate must have a unique name', call.=FALSE)
