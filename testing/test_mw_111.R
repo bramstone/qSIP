@@ -1,20 +1,33 @@
 # Testing of the calculation of MW values between qSIP package and manual
-# calculation code: 110
+# calculation code: 111
 
 ############################################
 # qsip package
 ############################################
+
+# first need to modify replicate number column so that they are unique in each group
+rep_matching <- unique(md@sam_data[,c('RepID', 'tmt', 'group')])
+rep_matching <- as(rep_matching, 'data.frame')
+rep_matching <- split(rep_matching, interaction(rep_matching$tmt, rep_matching$group))
+# sapply(rep_matching, nrow) # check row number - 6 in each 16O and 18O in each group
+# add in numbers - NOTE: sample names are aligned alphabetically such that the numbers in each treatment correspond
+rep_matching <- lapply(rep_matching, function(x) {x$rep_number <- 1:nrow(x); x})
+rep_matching <- do.call(rbind, rep_matching)
+# get into same format as md@sam_data
+rep_matching <- merge(as(md@sam_data, 'data.frame'), rep_matching, all.x=T)
+rep_matching <- rep_matching[match(md@sam_data$sample.rep.fraction, rep_matching$sample.rep.fraction),]
 
 mdq <- specify_qsip(md,
                     abund='qPCR.16S.copies.ul',
                     density='density.g.ml',
                     rep_id='RepID',
                     rep_group='group',
+                    rep_num='rep_number',
                     iso='18O',
                     iso_trt='tmt')
 
 # calculate WADs
-mdq <- calc_mw(mdq, separate_label=T, separate_light=F)
+mdq <- calc_mw(mdq, separate_label=T, separate_light=T)
 
 mwh <- mat_to_df(mdq@qsip[['mw_label']], 'mw_label')
 mwl <- mat_to_df(mdq@qsip[['mw_light']], 'mw_light')
@@ -83,6 +96,6 @@ mw_manual <- mw
 # compare calculations
 ############################################
 
-mw_110 <- merge(mw_qsip, mw_manual,
+mw_111 <- merge(mw_qsip, mw_manual,
                 by=c('OTU', 'RepID', 'group', 'tmt'),
                 suffixes=c('_qsip', '_manual'))
