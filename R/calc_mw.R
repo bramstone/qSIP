@@ -271,20 +271,12 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # ...........................................
       } else if(separate_light) { # CODE 111
         #
-        # evaluate that individual samples align for comparison
+        # evaluate that individual samples align for comparison (RETURNS MATRICES)
         # remove comparisons with missing labeled samples, replace unlabeled samples with average unlabeled
-        good_vals <- match_reps(data, wh, wl, iso_group, rep_group=TRUE)
+        # separately, global light will just replace ALL unlabeled WADs with the global average
+        good_vals <- match_reps(data, wh, wl, iso_group, rep_group=TRUE, global_light=global_light)
         wh <- good_vals[[1]]
         wl <- good_vals[[2]]
-        if(global_light) {
-          global_wl <- do.call(rbind, wl)
-          global_wl <- colMeans(global_wl, na.rm=TRUE)
-          global_wl[is.nan(global_wl)] <- NA
-          wl[grepl('light_avg', rownames(wl)),] <- global_wl
-        }
-        #
-        wh <- do.call(rbind, wh)
-        wl <- do.call(rbind, wl)
         # WAD correction
         if(correction) {
           shift <- wh - wl

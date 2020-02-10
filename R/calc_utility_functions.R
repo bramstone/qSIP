@@ -219,7 +219,7 @@ recombine_in_order <- function(ft, grouping, n_taxa, condensed_grouping=FALSE) {
 }
 
 # function which tests label and light values for matching replicates
-match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
+match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE, global_light=FALSE) {
   reps <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
   names(reps) <- c('replicate', 'replicate_num')
   reps <- merge(grouping, reps, all.x=TRUE)
@@ -230,6 +230,7 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
   reps2 <- reps
   reps <- split(reps, reps$replicate_num)
   issues <- vector('logical', length(reps))
+  #
   for(n in 1:length(reps)) {
     n_light <- reps[[n]][as.numeric(reps[[n]]$iso)==1,]
     n_label <- reps[[n]][as.numeric(reps[[n]]$iso)==2,]
@@ -310,10 +311,21 @@ match_reps <- function(data, wad_label, wad_light, grouping, rep_group=FALSE) {
       #
     }
   }
-  if(any(issues)) warning('Check data@qsip@rep_num contains unique names for every treatment and/or group', call.=FALSE)
+  if(any(issues)) warning('Check that data@qsip@rep_num contains unique names for every treatment and/or group', call.=FALSE)
   reps <- do.call(rbind, reps)
   reps_h <- droplevels(reps[as.numeric(reps$iso)==2,])
   reps_l <- droplevels(reps[as.numeric(reps$iso)==1,])
+  if(rep_groups) {
+    wad_label <- do.call(rbind, wad_label)
+    wad_light <- do.call(rbind, wad_light)
+    if(global_light) {
+      #
+      global_wl <- colMeans(global_wl, na.rm=TRUE)
+      global_wl[is.nan(global_wl)] <- NA
+      #
+      wad_light[1:nrow(wad_light),] <- global_wl
+    }
+  }
   return(list(wad_label[match(reps_h$replicate, rownames(wad_label)),],
               wad_light[match(reps_l$replicate, rownames(wad_light)),]))
 }
