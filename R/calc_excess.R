@@ -105,8 +105,6 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
     adjust <- (0.5024851 * gc) + 3.517396
     nat_abund <- 0.003663004
   }
-  # create MW heavy max
-  mw_max <- (adjust + mw_l)
   #
   # -------------------------------------------------------------
   # no CI and resampling
@@ -125,6 +123,8 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
       if(is.matrix(mw_h)) mw_h <- t(mw_h)
       if(is.matrix(mw_l)) mw_l <- t(mw_l)
     }
+    # create MW heavy max
+    mw_max <- (adjust + mw_l)
     # calculate atom excess
     # For most calc code methods, the molecular weight values will be the same dimensions (handled by calc_mw)
     # calc codes 010 and 110 have different calculations
