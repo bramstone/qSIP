@@ -47,35 +47,24 @@ mw <- merge(wads_man, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 mwh <- mw[mw$tmt=='18O',]
 mwl <- mw[mw$tmt=='16O',]
 
-# split by group
-mwh <- split(mwh, mwh$group)
-mwl <- split(mwl, mwl$group)
-
-# average light WADs, remove replicate data
-mwl <- lapply(mwl, function(x) aggregate(wad ~ OTU, x, mean))
+# average heavy WADs, remove replicate data
+mwl <- aggregate(wad ~ OTU + group, mwl, mean, na.rm=T)
 
 # merge light and heavy, disregarding treatment
-mw <- Map(function(x,y) merge(x[,!names(x) %in% 'tmt'], y,
-                              by='OTU',
-                              all.x=T,
-                              suffixes=c('_label', '_light')),
-          mwh, mwl)
+mw <- merge(mwh[,!names(mwh) %in% 'tmt'], mwl,
+            by=c('OTU', 'group'),
+            all.x=T,
+            suffixes=c('_label', '_light'))
 
 # calculate MWs
-mw <- lapply(mw, function(x) {
+mw <- within(mw, {
   # MW-light
-  x$gc <- (1 / 0.083506) * (x$wad_light - 1.646057)
-  x$mw_light <- (0.496 * x$gc) + 307.691
-  x$gc <- NULL
+  gc <- (1 / 0.083506) * (wad_light - 1.646057)
+  mw_light <- (0.496 * gc) + 307.691
+  gc <- NULL
   # MW-label
-  x$mw_label <- (((x$wad_label - x$wad_light) / x$wad_light) + 1) * x$mw_light
-  x
+  mw_label <- (((wad_label - wad_light) / wad_light) + 1) * mw_light
 })
-
-# recombine
-mw <- Map(function(x,y) {x$group <- y; x}, mw, names(mw))
-mw <- do.call(rbind, mw)
-
 
 mw <- reshape(mw,
               idvar=c('RepID', 'OTU', 'group'),
@@ -95,5 +84,5 @@ mw_manual <- mw
 ############################################
 
 mw_110 <- merge(mw_qsip, mw_manual,
-                by=c('OTU', 'group', 'tmt'),
+                by=c('OTU', 'RepID', 'group', 'tmt'),
                 suffixes=c('_qsip', '_manual'))
