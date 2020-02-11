@@ -89,7 +89,8 @@
 calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, filter=FALSE, correction=FALSE, offset_taxa=0.1,
                        separate_light=FALSE, separate_label=TRUE, global_light=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
-  ci_method <- match.arg(tolower(ci_method))
+  ci_method <- tolower(ci_method)
+  ci_method <- match.arg(ci_method)
   # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
   if(data@qsip@iso=='18O') {
     adjust <- 12.07747
