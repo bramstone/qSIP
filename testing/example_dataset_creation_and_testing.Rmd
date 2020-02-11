@@ -431,3 +431,24 @@ ggplot(mw_111, aes(mw_manual, mw_qsip)) +
   labs(title='Comparison of MW values', 
        subtitle='Calculation code: 111')
 ```
+
+
+## Testing isotope excess
+
+Calculation of excess atom fraction (EAF/AEF/AFE)
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+# calc code 000
+
+mdq <- specify_qsip(md,
+                    abund='qPCR.16S.copies.ul',
+                    density='density.g.ml',
+                    rep_id='RepID',
+                    iso='18O',
+                    iso_trt='tmt')
+
+# calculate atom excess
+mdq <- calc_excess(mdq, separate_label=F, separate_light=F)
+
+# manual calculation
+```
