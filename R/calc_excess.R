@@ -5,7 +5,7 @@
 #' @param data Data as a \code{phyloseq} object
 #' @param ci_method Character value indicating how to calculate confidence intervals of stable isotope atom excess.
 #'   Options are \code{bootstrap} or none (see \code{details} below for discussion on their differences).
-#'   The default is blank indicating that no confidence intervals will be calculated.
+#'   The default is none indicating that no confidence intervals will be calculated.
 #' @param ci Numeric value from 0 to 1 indicating the width of the confidence interval for bootsrapped atom excess values.
 #' @param iters Number of (subsampling) iterations to conduct to calculate confidence intervals. Default is \code{999}.
 #' @param filter Logical vector specifying whether or not to filter taxa from the weighted average density calculation.
