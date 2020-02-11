@@ -86,10 +86,10 @@
 #'
 #' @export
 
-calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, filter=FALSE, correction=FALSE, offset_taxa=0.1,
+calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, filter=FALSE, correction=FALSE, offset_taxa=0.1,
                        separate_light=FALSE, separate_label=TRUE, global_light=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
-  ci_method <- match.arg(tolower(ci_method), c('', 'none', 'bootstrap'))
+  ci_method <- match.arg(tolower(ci_method))
   # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
   if(data@qsip@iso=='18O') {
     adjust <- 12.07747
@@ -109,7 +109,7 @@ calc_excess <- function(data, ci_method=c('', 'bootstrap'), ci=.95, iters=999, f
   # -------------------------------------------------------------
   # no CI and resampling
   #
-  if(ci_method=='' || ci_method=='none') {
+  if(ci_method=='none') {
     # if recalculation wanted, do that first
     # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_mw)
     if(recalc | is.null(data@qsip[['mw_label']])) {
