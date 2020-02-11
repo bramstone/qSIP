@@ -4,7 +4,7 @@
 \alias{calc_excess}
 \title{Calculation of atom excess}
 \usage{
-calc_excess(data, ci_method = c("", "bootstrap"), ci = 0.95,
+calc_excess(data, ci_method = c("none", "bootstrap"), ci = 0.95,
   iters = 999, filter = FALSE, correction = FALSE,
   offset_taxa = 0.1, separate_light = FALSE, separate_label = TRUE,
   global_light = FALSE, rel_abund = TRUE, recalc = TRUE)
@@ -14,7 +14,7 @@ calc_excess(data, ci_method = c("", "bootstrap"), ci = 0.95,
 
 \item{ci_method}{Character value indicating how to calculate confidence intervals of stable isotope atom excess.
 Options are \code{bootstrap} or none (see \code{details} below for discussion on their differences).
-The default is blank indicating that no confidence intervals will be calculated.}
+The default is none indicating that no confidence intervals will be calculated.}
 
 \item{ci}{Numeric value from 0 to 1 indicating the width of the confidence interval for bootsrapped atom excess values.}
 
