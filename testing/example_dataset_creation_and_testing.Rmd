@@ -437,6 +437,8 @@ ggplot(mw_111, aes(mw_manual, mw_qsip)) +
 
 Calculation of excess atom fraction (EAF/AEF/AFE)
 
+
+
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
 # calc code 000
 
@@ -501,6 +503,8 @@ ggplot(ae_000, aes(excess_manual, excess_qsip)) +
   labs(title='Comparison of atom excess values', 
        subtitle='Calculation code: 000')
 ```
+
+
 
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
 # calc code 001
@@ -568,6 +572,8 @@ ggplot(ae_001, aes(excess_manual, excess_qsip)) +
        subtitle='Calculation code: 001')
 ```
 
+
+
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
 # calc code 010
 
@@ -633,6 +639,8 @@ ggplot(ae_010, aes(excess_manual, excess_qsip)) +
   labs(title='Comparison of atom excess values', 
        subtitle='Calculation code: 010')
 ```
+
+
 
 ```{r, warning=F, echo=F, fig.width=3, fig.height=3}
 # calc code 011
