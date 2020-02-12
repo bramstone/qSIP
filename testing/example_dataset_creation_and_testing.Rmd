@@ -675,8 +675,6 @@ ae <- merge(ae, unique(rep_matching_011[,c('RepID', 'tmt', 'rep_number')]), all.
 aeh <- ae[ae$tmt=='18O',]
 ael <- ae[ae$tmt=='16O',]
 
-# DON'T average light MWs, they've already been calculated based on averages
-
 # calculate MW-heavymax
 adjust <- 12.07747
 nat_abund <- 0.002011429
@@ -818,8 +816,7 @@ ae <- merge(mw_101, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 aeh <- ae[ae$tmt=='18O',]
 ael <- ae[ae$tmt=='16O',]
 
-# average heavy MWs by OTU and group
-aeh <- aggregate(mw_manual ~ OTU + group, aeh, mean, na.rm=T)
+# DON'T average heavy MWs, they've already been calculated based on averages
 
 # calculate MW-heavymax
 adjust <- 12.07747
@@ -827,9 +824,9 @@ nat_abund <- 0.002011429
 ael$mw_max <- (adjust + ael$mw_manual)
 
 # merge together, disregarding tmt
-ae <- merge(aeh, 
+ae <- merge(aeh[,!names(aeh) %in% 'tmt'], 
             ael[,!names(ael) %in% 'tmt'],
-            by=c('group', 'OTU'),
+            by=c('RepID', 'group', 'OTU'),
             suffixes=c('_label', '_light'))
 
 # calculate atom excess
@@ -844,7 +841,7 @@ ae_101 <- merge(ae_qsip,
                 by=c('RepID', 'group', 'OTU'),
                 suffixes=c('_qsip', '_manual'))
 
-# plot qSIP output against manual output
+# plot qSIP output against manual outputK
 gg_ae_101 <- ggplot(ae_101, aes(excess_manual, excess_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
@@ -889,8 +886,7 @@ ae <- merge(mw_110, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 aeh <- ae[ae$tmt=='18O',]
 ael <- ae[ae$tmt=='16O',]
 
-# average light MWs by OTU and group
-ael <- aggregate(mw_manual ~ OTU + group, ael, mean, na.rm=T)
+# DON'T average light MWs, they've already been calculated based on averages
 
 # calculate MW-heavymax
 adjust <- 12.07747
@@ -899,8 +895,8 @@ ael$mw_max <- (adjust + ael$mw_manual)
 
 # merge together, disregarding tmt
 ae <- merge(aeh[,!names(aeh) %in% 'tmt'], 
-            ael,
-            by=c('group', 'OTU'),
+            ael[,!names(ael) %in% 'tmt'],
+            by=c('RepID', 'group', 'OTU'),
             suffixes=c('_label', '_light'))
 
 # calculate atom excess
@@ -929,9 +925,84 @@ gg_ae_110 <- ggplot(ae_110, aes(excess_manual, excess_qsip)) +
 ```
 
 
+
+```{r, warning=F, echo=F}
+# calc code 111
+
+# combine new replicate numbers with data
+mdq <- md
+mdq@sam_data$rep_number_111 <- rep_matching$rep_number_111
+
+mdq <- specify_qsip(mdq,
+                    abund='qPCR.16S.copies.ul',
+                    density='density.g.ml',
+                    rep_id='RepID',
+                    rep_group='group',
+                    rep_num='rep_number_111',
+                    iso='18O',
+                    iso_trt='tmt')
+
+# calculate atom excess
+mdq <- calc_excess(mdq, separate_label=T, separate_light=T)
+
+# convert to data frame, use c() to remove attributes
+ae <- mat_to_df(mdq@qsip[['atom_excess']], 'excess')
+
+ae_qsip <- ae
+
+
+# manual calculation-------------------------------------------
+# add treatment (isotope) data, groups, and replicate numbers for grouping
+ae <- merge(mw_111, unique(rep_matching[,c('RepID', 'tmt', 'group', 'rep_number_111')]), all.x=T)
+
+# separate light and heavy WADs
+aeh <- ae[ae$tmt=='18O',]
+ael <- ae[ae$tmt=='16O',]
+
+# merge light and heavy, matching by replicate number, OTU, and group
+ae <- merge(aeh[,!names(aeh) %in% c('tmt', 'RepID')],
+            ael[,!names(aeh) %in% c('tmt', 'RepID')],
+            by=c('OTU', 'group', 'rep_number_111'),
+            suffixes=c('_label', '_light'))
+
+# calculate atom excess
+adjust <- 12.07747
+nat_abund <- 0.002011429
+#
+ae <- within(ae, {
+  mw_max <- (adjust + mw_manual_light)
+  excess <- ((mw_manual_label - mw_manual_light)/(mw_max - mw_manual_light)) * (1 - nat_abund)
+})
+
+# get RepID again
+ae <- merge(unique(rep_matching[,c('RepID', 'tmt', 'group', 'rep_number_111')]),
+            ae,
+            all.y=T)
+ae$rep_number_111 <- NULL
+
+# compare calculations-----------------------------------------
+ae_111 <- merge(ae_qsip,
+                ae[,c('RepID', 'OTU', 'excess')],
+                by=c('RepID', 'OTU'),
+                suffixes=c('_qsip', '_manual'))
+
+# plot qSIP output against manual output
+gg_ae_111 <- ggplot(ae_111, aes(excess_manual, excess_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(ae_111$excess_manual, ae_111$excess_qsip)), 
+       max(c(ae_111$excess_manual, ae_111$excess_qsip))) +
+  ylim(min(c(ae_111$excess_manual, ae_111$excess_qsip)), 
+       max(c(ae_111$excess_manual, ae_111$excess_qsip))) +
+  labs(title='Calculation code: 111')
+```
+
+
 ```{r, warning=F, echo=F, fig.height=9, fig.width=9}
 grid.arrange(layout_matrix=matrix(1:9, ncol=3, byrow=T),
              gg_ae_000, gg_ae_001, gg_ae_010,
              gg_ae_011, gg_ae_100, gg_ae_101,
-             gg_ae_110) #, gg_ae_111)
+             gg_ae_110, gg_ae_111)
 ```
