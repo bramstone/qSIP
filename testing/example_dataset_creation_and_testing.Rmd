@@ -407,6 +407,8 @@ gg_mw_110 <- ggplot(mw_110, aes(mw_manual, mw_qsip)) +
   labs(title='Calculation code: 110')
 ```
 
+For calculation code `111`, Replicate matching was from 1 to 6, since the replicates are grouped into `A` and `B`. Note that this groups together the 10 and 15 timepoints.
+
 ```{r, warning=F, echo=F}
 source('test_mw_111.R')
 # returns mw_111 object
@@ -793,6 +795,6 @@ gg_ae_100 <- ggplot(ae_100, aes(excess_manual, excess_qsip)) +
 ```{r, warning=F, echo=F, fig.height=9, fig.width=9}
 grid.arrange(layout_matrix=matrix(1:9, ncol=3, byrow=T),
              gg_ae_000, gg_ae_001, gg_ae_010,
-             gg_ae_011, gg_ae_100), # gg_ae_101,
+             gg_ae_011, gg_ae_100) # gg_ae_101,
              # gg_ae_110, gg_ae_111)
 ```
