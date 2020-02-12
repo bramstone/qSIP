@@ -818,7 +818,7 @@ ae <- merge(mw_101, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 aeh <- ae[ae$tmt=='18O',]
 ael <- ae[ae$tmt=='16O',]
 
-# average heavy MWs by OTU, group, and treatment
+# average heavy MWs by OTU and group
 aeh <- aggregate(mw_manual ~ OTU + group, aeh, mean, na.rm=T)
 
 # calculate MW-heavymax
@@ -862,7 +862,7 @@ gg_ae_101 <- ggplot(ae_101, aes(excess_manual, excess_qsip)) +
 ```{r, warning=F, echo=F}
 # calc code 110
 
-mdq <- specify_qsip(mdq,
+mdq <- specify_qsip(md,
                     abund='qPCR.16S.copies.ul',
                     density='density.g.ml',
                     rep_id='RepID',
@@ -889,8 +889,8 @@ ae <- merge(mw_110, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
 aeh <- ae[ae$tmt=='18O',]
 ael <- ae[ae$tmt=='16O',]
 
-# average heavy MWs by OTU, group, and treatment
-aeh <- aggregate(mw_manual ~ OTU + group, aeh, mean, na.rm=T)
+# average light MWs by OTU and group
+ael <- aggregate(mw_manual ~ OTU + group, ael, mean, na.rm=T)
 
 # calculate MW-heavymax
 adjust <- 12.07747
@@ -898,8 +898,8 @@ nat_abund <- 0.002011429
 ael$mw_max <- (adjust + ael$mw_manual)
 
 # merge together, disregarding tmt
-ae <- merge(aeh, 
-            ael[,!names(ael) %in% 'tmt'],
+ae <- merge(aeh[,!names(aeh) %in% 'tmt'], 
+            ael,
             by=c('group', 'OTU'),
             suffixes=c('_label', '_light'))
 
@@ -932,6 +932,6 @@ gg_ae_110 <- ggplot(ae_110, aes(excess_manual, excess_qsip)) +
 ```{r, warning=F, echo=F, fig.height=9, fig.width=9}
 grid.arrange(layout_matrix=matrix(1:9, ncol=3, byrow=T),
              gg_ae_000, gg_ae_001, gg_ae_010,
-             gg_ae_011, gg_ae_100, gg_ae_101)
-             # gg_ae_110, gg_ae_111)
+             gg_ae_011, gg_ae_100, gg_ae_101,
+             gg_ae_110) #, gg_ae_111)
 ```
