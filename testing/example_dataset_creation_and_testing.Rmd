@@ -286,12 +286,12 @@ ggplot(wads, aes(wad_manual, wad_qsip)) +
 
 Here the calculation codes begin to take effect as grouping begins to take place.
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_000.R')
 # returns mw_000 object
 
 # plot qSIP output against manual output
-ggplot(mw_000, aes(mw_manual, mw_qsip)) +
+gg_mw_000 <- ggplot(mw_000, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -300,16 +300,15 @@ ggplot(mw_000, aes(mw_manual, mw_qsip)) +
        max(c(mw_000$mw_manual, mw_000$mw_qsip))) +
   ylim(min(c(mw_000$mw_manual, mw_000$mw_qsip)), 
        max(c(mw_000$mw_manual, mw_000$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 000')
+  labs(title='Calculation code: 000')
 ```
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_001.R')
 # returns mw_001 object
 
 # plot qSIP output against manual output
-ggplot(mw_001, aes(mw_manual, mw_qsip)) +
+gg_mw_001 <- ggplot(mw_001, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -318,16 +317,15 @@ ggplot(mw_001, aes(mw_manual, mw_qsip)) +
        max(c(mw_001$mw_manual, mw_001$mw_qsip))) +
   ylim(min(c(mw_001$mw_manual, mw_001$mw_qsip)), 
        max(c(mw_001$mw_manual, mw_001$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 001')
+  labs(title='Calculation code: 001')
 ```
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_010.R')
 # returns mw_010 object
 
 # plot qSIP output against manual output
-ggplot(mw_010, aes(mw_manual, mw_qsip)) +
+gg_mw_010 <- ggplot(mw_010, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -336,18 +334,17 @@ ggplot(mw_010, aes(mw_manual, mw_qsip)) +
        max(c(mw_010$mw_manual, mw_010$mw_qsip))) +
   ylim(min(c(mw_010$mw_manual, mw_010$mw_qsip)), 
        max(c(mw_010$mw_manual, mw_010$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 010')
+  labs(title='Calculation code: 010')
 ```
 
 For calculation code `011`, it was necessary to create a replicate numbering column that matched each ^18^O sample to it's corresponding ^16^O sample. For example, sample `A.1.16O.10` must have the same replicate number as `A.1.18O.10`. With three samples, two groups, and two timepoints, that generated a replicate number from 1 to 12.
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_011.R')
 # returns mw_011 object
 
 # plot qSIP output against manual output
-ggplot(mw_011, aes(mw_manual, mw_qsip)) +
+gg_mw_011 <- ggplot(mw_011, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -356,16 +353,15 @@ ggplot(mw_011, aes(mw_manual, mw_qsip)) +
        max(c(mw_011$mw_manual, mw_011$mw_qsip))) +
   ylim(min(c(mw_011$mw_manual, mw_011$mw_qsip)), 
        max(c(mw_011$mw_manual, mw_011$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 011')
+  labs(title='Calculation code: 011')
 ```
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_100.R')
 # returns mw_100 object
 
 # plot qSIP output against manual output
-ggplot(mw_100, aes(mw_manual, mw_qsip)) +
+gg_mw_100 <- ggplot(mw_100, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -374,16 +370,15 @@ ggplot(mw_100, aes(mw_manual, mw_qsip)) +
        max(c(mw_100$mw_manual, mw_100$mw_qsip))) +
   ylim(min(c(mw_100$mw_manual, mw_100$mw_qsip)), 
        max(c(mw_100$mw_manual, mw_100$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 100')
+  labs(title='Calculation code: 100')
 ```
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_101.R')
 # returns mw_101 object
 
 # plot qSIP output against manual output
-ggplot(mw_101, aes(mw_manual, mw_qsip)) +
+gg_mw_101 <- ggplot(mw_101, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -392,16 +387,15 @@ ggplot(mw_101, aes(mw_manual, mw_qsip)) +
        max(c(mw_101$mw_manual, mw_101$mw_qsip))) +
   ylim(min(c(mw_101$mw_manual, mw_101$mw_qsip)), 
        max(c(mw_101$mw_manual, mw_101$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 101')
+  labs(title='Calculation code: 101')
 ```
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_110.R')
 # returns mw_110 object
 
 # plot qSIP output against manual output
-ggplot(mw_110, aes(mw_manual, mw_qsip)) +
+gg_mw_110 <- ggplot(mw_110, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -410,16 +404,15 @@ ggplot(mw_110, aes(mw_manual, mw_qsip)) +
        max(c(mw_110$mw_manual, mw_110$mw_qsip))) +
   ylim(min(c(mw_110$mw_manual, mw_110$mw_qsip)), 
        max(c(mw_110$mw_manual, mw_110$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 110')
+  labs(title='Calculation code: 110')
 ```
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 source('test_mw_111.R')
 # returns mw_111 object
 
 # plot qSIP output against manual output
-ggplot(mw_111, aes(mw_manual, mw_qsip)) +
+gg_mw_111 <- ggplot(mw_111, aes(mw_manual, mw_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -428,8 +421,16 @@ ggplot(mw_111, aes(mw_manual, mw_qsip)) +
        max(c(mw_111$mw_manual, mw_111$mw_qsip))) +
   ylim(min(c(mw_111$mw_manual, mw_111$mw_qsip)), 
        max(c(mw_111$mw_manual, mw_111$mw_qsip))) +
-  labs(title='Comparison of MW values', 
-       subtitle='Calculation code: 111')
+  labs(title='Calculation code: 111')
+```
+
+
+
+```{r, warning=F, echo=F, fig.height=9, fig.width=9}
+grid.arrange(layout_matrix=matrix(1:9, ncol=3, byrow=T),
+             gg_mw_000, gg_mw_001, gg_mw_010,
+             gg_mw_011, gg_mw_100, gg_mw_101,
+             gg_mw_110, gg_mw_111)
 ```
 
 
@@ -491,7 +492,7 @@ ae_000 <- merge(ae_qsip,
                 suffixes=c('_qsip', '_manual'))
 
 # plot qSIP output against manual output
-ggplot(ae_000, aes(excess_manual, excess_qsip)) +
+gg_ae_000 <- ggplot(ae_000, aes(excess_manual, excess_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -500,13 +501,13 @@ ggplot(ae_000, aes(excess_manual, excess_qsip)) +
        max(c(ae_000$excess_manual, ae_000$excess_qsip))) +
   ylim(min(c(ae_000$excess_manual, ae_000$excess_qsip)), 
        max(c(ae_000$excess_manual, ae_000$excess_qsip))) +
-  labs(title='Comparison of atom excess values', 
+  labs(title='Comparison of EAF values', 
        subtitle='Calculation code: 000')
 ```
 
 
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 # calc code 001
 
 mdq <- specify_qsip(md,
@@ -559,7 +560,7 @@ ae_001 <- merge(ae_qsip,
                 suffixes=c('_qsip', '_manual'))
 
 # plot qSIP output against manual output
-ggplot(ae_001, aes(excess_manual, excess_qsip)) +
+gg_ae_001 <- ggplot(ae_001, aes(excess_manual, excess_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -568,13 +569,13 @@ ggplot(ae_001, aes(excess_manual, excess_qsip)) +
        max(c(ae_001$excess_manual, ae_001$excess_qsip))) +
   ylim(min(c(ae_001$excess_manual, ae_001$excess_qsip)), 
        max(c(ae_001$excess_manual, ae_001$excess_qsip))) +
-  labs(title='Comparison of atom excess values', 
+  labs(title='Comparison of EAF values', 
        subtitle='Calculation code: 001')
 ```
 
 
 
-```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+```{r, warning=F, echo=F}
 # calc code 010
 
 mdq <- specify_qsip(md,
@@ -627,7 +628,7 @@ ae_010 <- merge(ae_qsip,
                 suffixes=c('_qsip', '_manual'))
 
 # plot qSIP output against manual output
-ggplot(ae_010, aes(excess_manual, excess_qsip)) +
+gg_ae_010 <- ggplot(ae_010, aes(excess_manual, excess_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -636,7 +637,7 @@ ggplot(ae_010, aes(excess_manual, excess_qsip)) +
        max(c(ae_010$excess_manual, ae_010$excess_qsip))) +
   ylim(min(c(ae_010$excess_manual, ae_010$excess_qsip)), 
        max(c(ae_010$excess_manual, ae_010$excess_qsip))) +
-  labs(title='Comparison of atom excess values', 
+  labs(title='Comparison of EAF values', 
        subtitle='Calculation code: 010')
 ```
 
@@ -702,7 +703,7 @@ ae_011 <- merge(ae_qsip,
                 suffixes=c('_qsip', '_manual'))
 
 # plot qSIP output against manual output
-ggplot(ae_011, aes(excess_manual, excess_qsip)) +
+gg_ae_011 <- ggplot(ae_011, aes(excess_manual, excess_qsip)) +
   geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
   geom_point(color=hsv(.55, 1, .4)) +
   xlab('Manual calculation') +
@@ -711,6 +712,87 @@ ggplot(ae_011, aes(excess_manual, excess_qsip)) +
        max(c(ae_011$excess_manual, ae_011$excess_qsip))) +
   ylim(min(c(ae_011$excess_manual, ae_011$excess_qsip)), 
        max(c(ae_011$excess_manual, ae_011$excess_qsip))) +
-  labs(title='Comparison of atom excess values', 
+  labs(title='Comparison of EAF values', 
        subtitle='Calculation code: 011')
+```
+
+
+
+```{r, warning=F, echo=F, fig.width=3, fig.height=3}
+# calc code 100
+
+mdq <- specify_qsip(mdq,
+                    abund='qPCR.16S.copies.ul',
+                    density='density.g.ml',
+                    rep_group='group',
+                    rep_num='rep_number',
+                    iso='18O',
+                    iso_trt='tmt')
+
+# calculate atom excess
+mdq <- calc_excess(mdq, separate_label=F, separate_light=F)
+
+# convert to data frame, use c() to remove attributes
+ae <- mat_to_df(mdq@qsip[['atom_excess']], 'excess')
+
+names(ae)[1] <- 'group'
+ae$group <- sub('(.*)\\.(.*)', '\\2', ae$group)
+
+ae_qsip <- ae
+
+
+# manual calculation-------------------------------------------
+# add treatment (isotope) and group data for grouping
+ae <- merge(mw_100, unique(mdl[,c('RepID', 'tmt', 'group')]), all.x=T)
+
+# average MWs by OTU, group, and treatment
+ae <- aggregate(mw_manual ~ OTU + group + tmt, ae, mean, na.rm=T)
+
+# separate light and heavy MWs
+aeh <- ae[ae$tmt=='18O',]
+ael <- ae[ae$tmt=='16O',]
+
+# calculate MW-heavymax
+adjust <- 12.07747
+nat_abund <- 0.002011429
+ael$mw_max <- (adjust + ael$mw_manual)
+
+# merge, disregarding tmt
+ae <- merge(aeh[,!names(aeh) %in% 'tmt'], 
+            ael[,!names(ael) %in% 'tmt'],
+            by=c('group', 'OTU'),
+            suffixes=c('_label', '_light'))
+
+# calculate atom excess
+ae <- within(ae, {
+  excess <- ((mw_manual_label - mw_manual_light)/(mw_max - mw_manual_light)) * (1 - nat_abund)
+})
+
+
+# compare calculations-----------------------------------------
+ae_100 <- merge(ae_qsip,
+                ae[,c('group', 'OTU', 'excess')],
+                by=c('group', 'OTU'),
+                suffixes=c('_qsip', '_manual'))
+
+# plot qSIP output against manual output
+gg_ae_100 <- ggplot(ae_100, aes(excess_manual, excess_qsip)) +
+  geom_abline(aes(slope=1, intercept=0), color=hsv(0, 1, .8)) +
+  geom_point(color=hsv(.55, 1, .4)) +
+  xlab('Manual calculation') +
+  ylab('qSIP package') +
+  xlim(min(c(ae_100$excess_manual, ae_100$excess_qsip)), 
+       max(c(ae_100$excess_manual, ae_100$excess_qsip))) +
+  ylim(min(c(ae_100$excess_manual, ae_100$excess_qsip)), 
+       max(c(ae_100$excess_manual, ae_100$excess_qsip))) +
+  labs(title='Comparison of EAF values', 
+       subtitle='Calculation code: 100')
+```
+
+
+```{r, warning=F, echo=F, fig.height=9, fig.width=9}
+grid.arrange(layout_matrix=matrix(1:9, ncol=3, byrow=T),
+             gg_ae_000, gg_ae_001, gg_ae_010,
+             gg_ae_011, gg_ae_100), # gg_ae_101,
+             # gg_ae_110, gg_ae_111)
 ```
