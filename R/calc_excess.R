@@ -124,7 +124,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       if(is.matrix(mw_h)) mw_h <- t(mw_h)
       if(is.matrix(mw_l)) mw_l <- t(mw_l)
     }
-    if(separate_label) tax_names <- rownames(mw_h) else tax_names <- names(mw_h)
+    if(separate_label) tax_names <- colnames(mw_h) else tax_names <- names(mw_h)
     # create MW heavy max
     mw_max <- (adjust + mw_l)
     # calculate atom excess
