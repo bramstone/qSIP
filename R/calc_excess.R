@@ -145,9 +145,13 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         iso_group <- iso_group[match(rownames(mw_h), iso_group$replicate),]
         mw_h <- split_data(data, mw_h, iso_group$grouping, grouping_w_phylosip=FALSE, keep_names=1)
         mw_l <- split_data(data, mw_l, rownames(mw_l), grouping_w_phylosip=FALSE, keep_names=0)
+        mw_max <- split_data(data, mw_max, rownames(mw_max), grouping_w_phylosip=FALSE, keep_names=0)
         #
-        excess <- Map(function(x, y) sweep(x, 2, y, function(mwH, mwL) ((mwH - mwL)/ mw_max - 1) * (1 - nat_abund)),
-                      mw_h, mw_l)
+        num <- base::Map(function(mwH, mwL) sweep(mwH, 2, mwL), mw_h, mw_l)
+        denom <- base::Map('-', mw_max, mw_l)
+        excess <- Map(function(num, denom) sweep(num, 2, denom, '/') * (1 - nat_abund), num, denom)
+        # excess <- Map(function(x, y) sweep(x, 2, y, function(mwH, mwL) ((mwH - mwL) / (mw_max - mw_l)) * (1 - nat_abund)),
+        #               mw_h, mw_l)
         #
         # adjust for maximum possible labeling per sample
         #
