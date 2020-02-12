@@ -150,8 +150,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         num <- base::Map(function(mwH, mwL) sweep(mwH, 2, mwL), mw_h, mw_l)
         denom <- base::Map('-', mw_max, mw_l)
         excess <- Map(function(num, denom) sweep(num, 2, denom, '/') * (1 - nat_abund), num, denom)
-        # excess <- Map(function(x, y) sweep(x, 2, y, function(mwH, mwL) ((mwH - mwL) / (mw_max - mw_l)) * (1 - nat_abund)),
-        #               mw_h, mw_l)
+        excess <- do.call(rbind, excess)
         #
         # adjust for maximum possible labeling per sample
         #
