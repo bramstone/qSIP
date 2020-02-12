@@ -871,7 +871,7 @@ mdq <- specify_qsip(mdq,
                     iso_trt='tmt')
 
 # calculate atom excess
-mdq <- calc_excess(mdq, separate_label=F, separate_light=T)
+mdq <- calc_excess(mdq, separate_label=T, separate_light=F)
 
 # convert to data frame, use c() to remove attributes
 ae <- mat_to_df(mdq@qsip[['atom_excess']], 'excess')
