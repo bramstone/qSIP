@@ -77,9 +77,6 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   if(phyloseq::taxa_are_rows(data)) wad <- t(wad)
   n_taxa <- ncol(wad)
   tax_names <- colnames(wad)
-  # split matrix by replicate, remove samples with NA for isotope trt, and keep track of light and heavy fractions
-  wad <- valid_samples(data, wad, 'iso')
-  iso_group <- wad[[2]]; wad <- wad[[1]]
   #
   # if timepoint specified in data but not group, timepoint becomes the grouping
   if(length(data@qsip@timepoint)==1 && length(data@qsip@rep_group)==0) {
@@ -90,6 +87,9 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
     data@sam_data$timepoint.rep_group <- interaction(data@sam_data[[data@qsip@rep_group]],
                                                      data@sam_data[[data@qsip@timepoint]])
   }
+  # split matrix by replicate, remove samples with NA for isotope trt, and keep track of light and heavy fractions
+  wad <- valid_samples(data, wad, 'iso')
+  iso_group <- wad[[2]]; wad <- wad[[1]]
   # separate labeled and unlabeled samples
   wh <- wad[as.numeric(iso_group$iso)==2,]
   wl <- wad[as.numeric(iso_group$iso)==1,]
