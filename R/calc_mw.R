@@ -74,7 +74,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   tax_names <- colnames(wad)
   # split matrix by replicate, remove samples with NA for isotope trt, and keep track of light and heavy fractions
   wad <- valid_samples(data, wad, 'iso')
-  iso_group <- ft[[2]]; wad <- wad[[1]]
+  iso_group <- wad[[2]]; wad <- wad[[1]]
   # separate labeled and unlabeled samples
   wh <- wad[as.numeric(iso_group$iso)==2,]
   wl <- wad[as.numeric(iso_group$iso)==1,]
