@@ -158,7 +158,7 @@ summarize_ci <- function(bootstraps, ci, grouping, ncols, list_names=c('ci_l', '
 # function that removes invalid (missing) rows between matrix (ft, WADS, diff_WADS, etc.) and grouping data.frame
 # returns a list of 2; [[1]] is the matrix, [[2]] is the grouping data.frame with invalid rows removed
 # samples should be rows in feature table
-valid_samples <- function(data, feature_table, grouping=c('iso', 'time'), quiet=FALSE, separate_t0=FALSE) {
+valid_samples <- function(data, feature_table, grouping=c('iso', 'time'), quiet=FALSE) {
   grouping <- match.arg(grouping, c('iso', 'time'))
   # grouping by isotope or timepoint?
   if(grouping=='iso') {
@@ -166,23 +166,6 @@ valid_samples <- function(data, feature_table, grouping=c('iso', 'time'), quiet=
   } else {
     group_data <- time_grouping(data, data@qsip@timepoint, data@qsip@rep_id, data@qsip@rep_group)
   }
-  # # if matching replicates, identify any samples that are unmatched between time 0 and time t
-  # if(separate_t0) {
-  #   rep_nums <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
-  #   names(rep_nums) <- c('replicate', 'replicate_num')
-  #   matching <- merge(group_data, rep_nums, all.x=TRUE)
-  #   # remove light samples from abundance calcs, before determining un-matched replicates
-  #   light_group <- iso_grouping(data, data@qsip@iso_trt, data@qsip@rep_id, data@qsip@rep_group)
-  #   light_group <- light_group[as.numeric(light_group$iso)==1,]
-  #   matching <- matching[!matching$replicate %in% light_group$replicate,]
-  #   # split, sum up number of rows for each replicate, discard if only 1
-  #   matching <- split(matching, interaction(matching$grouping, matching$replicate_num))
-  #   matching <- lapply(matching, function(x) {if(nrow(x)==1) x$replicate_num <- NA; x})
-  #   matching <- do.call(rbind, matching)
-  #   matching <- merge(matching, rep_nums[!rep_nums$replicate %in% matching$replicate,], all=TRUE)
-  #   group_data <- merge(group_data, matching[,c('replicate', 'replicate_num')], all.x=TRUE)
-  #   group_data <- group_data[order(group_data$interaction, group_data$replicate_num),]
-  # }
   # identify any NAs that occur across iso/timepoint column, replicate IDs, or grouping variable
   invalid <- sapply(group_data, is.na)
   invalid <- apply(invalid, 1, any)
