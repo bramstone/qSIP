@@ -255,6 +255,8 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
                                      separate_light=separate_light,
                                      separate_label=separate_label,
                                      recalc=TRUE))
+    attributes(data@qsip[['mw_label']])$calc_method <- output_attr
+    attributes(data@qsip[['mw_light']])$calc_method <- output_attr
     return(data)
   }
 }
