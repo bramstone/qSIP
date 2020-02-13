@@ -4,7 +4,7 @@
 \alias{calc_pop}
 \title{Calculation of population dynamics}
 \usage{
-calc_pop(data, ci_method = c("", "bootstrap", "bayesian"), ci = 0.95,
+calc_pop(data, ci_method = c("none", "bootstrap"), ci = 0.95,
   iters = 999, filter = FALSE, growth_model = c("exponential",
   "linear"), mu = 0.6, correction = FALSE, offset_taxa = 0.1,
   max_label = 1, separate_light = FALSE, separate_label = TRUE,
@@ -15,8 +15,8 @@ calc_pop(data, ci_method = c("", "bootstrap", "bayesian"), ci = 0.95,
 \item{data}{Data as a \code{phyloseq} object}
 
 \item{ci_method}{Character value indicating how to calculate confidence intervals of stable isotope atom excess.
-Options are \code{bootstrap} or \code{bayesian} (see \code{details} below for discussion on their differences).
-The default is blank indicating that no confidence intervals will be calculated.}
+Options are \code{bootstrap} or \code{none} (see \code{details} below for discussion on their differences).
+The default is \code{none} indicating that no confidence intervals will be calculated.}
 
 \item{ci}{Numeric value from 0 to 1 indicating the width of the confidence interval for bootsrapped atom excess values.}
 
