@@ -158,7 +158,7 @@ summarize_ci <- function(bootstraps, ci, grouping, ncols, list_names=c('ci_l', '
 # function that removes invalid (missing) rows between matrix (ft, WADS, diff_WADS, etc.) and grouping data.frame
 # returns a list of 2; [[1]] is the matrix, [[2]] is the grouping data.frame with invalid rows removed
 # samples should be rows in feature table
-valid_samples <- function(data, feature_table, grouping=c('iso', 'time'), quiet=FALSE, match_replicate=FALSE) {
+valid_samples <- function(data, feature_table, grouping=c('iso', 'time'), quiet=FALSE, separate_t0=FALSE) {
   grouping <- match.arg(grouping, c('iso', 'time'))
   # grouping by isotope or timepoint?
   if(grouping=='iso') {
@@ -167,7 +167,7 @@ valid_samples <- function(data, feature_table, grouping=c('iso', 'time'), quiet=
     group_data <- time_grouping(data, data@qsip@timepoint, data@qsip@rep_id, data@qsip@rep_group)
   }
   # if matching replicates, identify any samples that are unmatched between time 0 and time t
-  if(match_replicate) {
+  if(separate_t0) {
     rep_nums <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
     names(rep_nums) <- c('replicate', 'replicate_num')
     matching <- merge(group_data, rep_nums, all.x=TRUE)
