@@ -4,8 +4,8 @@
 #'
 #' @param data Data as a \code{phyloseq} object
 #' @param ci_method Character value indicating how to calculate confidence intervals of stable isotope atom excess.
-#'   Options are \code{bootstrap} or \code{bayesian} (see \code{details} below for discussion on their differences).
-#'   The default is blank indicating that no confidence intervals will be calculated.
+#'   Options are \code{bootstrap} or \code{none} (see \code{details} below for discussion on their differences).
+#'   The default is \code{none} indicating that no confidence intervals will be calculated.
 #' @param ci Numeric value from 0 to 1 indicating the width of the confidence interval for bootsrapped atom excess values.
 #' @param iters Number of (subsampling) iterations to conduct to calculate confidence intervals. Default is \code{999}.
 #' @param filter Logical vector specifying whether or not to filter taxa from the weighted average density calculation.
@@ -76,12 +76,12 @@
 #' @export
 
 # NOTE: MAX_LABEL IS NOT CURRENTLY IMPLEMENTED IN THE CALCULATIONS. NEED TO LOOK AT BEST WAY TO DO THIS.
-calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, iters=999, filter=FALSE, growth_model=c('exponential', 'linear'),
+calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, filter=FALSE, growth_model=c('exponential', 'linear'),
                      mu=0.6, correction=FALSE, offset_taxa=0.1, max_label=1, separate_light=FALSE, separate_label=TRUE, match_replicate=FALSE,
                      rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object', call.=FALSE)
-  ci_method <- match.arg(tolower(ci_method), c('', 'bootstrap', 'bayesian'))
-  growth_model <- match.arg(tolower(growth_model), c('exponential', 'linear'))
+  ci_method <- match.arg(tolower(ci_method))
+  growth_model <- match.arg(tolower(growth_model))
   if(data@qsip@iso!='18O') stop('Must use 18O-labeled treatment to calculate population change', call.=FALSE)
   if(length(data@qsip@timepoint)==0) stop('Must specify different sample times with timepoint', call.=FALSE)
   times <- data@sam_data[[data@qsip@timepoint]]
@@ -263,7 +263,6 @@ calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, ite
     # organize and add new data as S4 matrices
     data <- collate_results(data, t(b), tax_names=tax_names, 'birth_rate', sparse=T)
     data <- collate_results(data, t(d), tax_names=tax_names, 'death_rate', sparse=T)
-    data <- collate_results(data, t(b + d), tax_names=tax_names, 'growth_rate', sparse=T)
     return(data)
   #
   # -------------------------------------------------------------
@@ -452,17 +451,13 @@ calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, ite
                              grouping=time_group,
                              ncols=n_taxa,
                              data=data)
-    ci_net <- summarize_ci(boot_collect_b + boot_collect_d, ci,
-                            grouping=time_group,
-                            ncols=n_taxa,
-                            data=data)
     rm(boot_collect_b, boot_collect_d)
     # collate results
-    objects <- c('ci_birth', 'ci_death', 'ci_net')
-    metric <- c('birth_rate', 'death_rate', 'growth_rate')
+    objects <- c('ci_birth', 'ci_death')
+    metric <- c('birth_rate', 'death_rate')
     ci_level <- c('ci_l', '', 'ci_u')
-    for(i in 1:3) {
-      for(j in 1:3) {
+    for(i in 1:2) {
+      for(j in 1:2) {
         data <- collate_results(data,
                                 get(objects[i])[[j]],
                                 tax_names=tax_names,
@@ -479,14 +474,5 @@ calc_pop <- function(data, ci_method=c('', 'bootstrap', 'bayesian'), ci=.95, ite
                                      separate_label=separate_label,
                                      recalc=TRUE))
     return(data)
-  #
-  # -------------------------------------------------------------
-  # CI values obtained through bootstrap subsampling
-  #
-  } else if(ci_method=='bayesian') {
-    print('No Bayesian method yet, returning data unaltered')
-    return(data)
-    # code here.....
   }
-  return(data)
 }
