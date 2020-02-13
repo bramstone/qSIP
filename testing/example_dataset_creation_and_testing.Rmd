@@ -238,9 +238,9 @@ There are several binary decisions to make in how to group a qSIP data set. Each
 
 ### Growth
 
-Similar but the with five binary digits (*e.g.*, 01101) where the left-most digit corresponds to whether different timepoints are to be analyzed sequentially, or each with respect to 0. Timepoints can't be ignored in growth calculations, so separating them is more akin to separating heavy and light WADs (necessary) rather than averaging replicates or keeping them separate (user preference). The second digit designates whether grouping is specified; third designates averaging of labeled values; and fourth designates averaging of unlabeled values. The last digit specified whether or not abundances at time 0 are to be averaged or matched against labeled/unlabeled values. This leaves `r 2^5` total options.
+Similar but the with five binary digits (*e.g.*, 01101) where the right-most digit corresponds to whether different timepoints are to be analyzed sequentially, or each with respect to 0. Timepoints can't be ignored in growth calculations, so separating them is more akin to separating heavy and light WADs (necessary) rather than averaging replicates or keeping them separate (user preference). The first digit designates whether grouping is specified; second designates averaging of labeled values; and third designates averaging of unlabeled values. The fourth digit specified whether or not abundances at time 0 are to be averaged or matched against labeled/unlabeled values. This leaves `r 2^5` total options.
 
-Sequential time|Group|Label|Light|Time~0~|
+|Group|Label|Light|Time~0~|Sequential time|
 |---:|---:|---:|---:|---:|
 | 0:1 | 0:1 | 0:1 | 0:1 | 0:1 |
 
