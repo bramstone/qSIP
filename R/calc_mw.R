@@ -67,17 +67,17 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
     data <- calc_wad(data, filter=filter, rel_abund=rel_abund)
   }
   # extract WAD values and convert to S3 matrix
-  ft <- data@qsip[['wad']]
-  ft <- as(ft, 'matrix')
-  if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
-  n_taxa <- ncol(ft)
-  tax_names <- colnames(ft)
+  wad <- data@qsip[['wad']]
+  wad <- as(wad, 'matrix')
+  if(phyloseq::taxa_are_rows(data)) wad <- t(wad)
+  n_taxa <- ncol(wad)
+  tax_names <- colnames(wad)
   # split matrix by replicate, remove samples with NA for isotope trt, and keep track of light and heavy fractions
-  ft <- valid_samples(data, ft, 'iso')
-  iso_group <- ft[[2]]; ft <- ft[[1]]
+  wad <- valid_samples(data, wad, 'iso')
+  iso_group <- ft[[2]]; wad <- wad[[1]]
   # separate labeled and unlabeled samples
-  wh <- ft[as.numeric(iso_group$iso)==2,]
-  wl <- ft[as.numeric(iso_group$iso)==1,]
+  wh <- wad[as.numeric(iso_group$iso)==2,]
+  wl <- wad[as.numeric(iso_group$iso)==1,]
   iso_h <- droplevels(iso_group[as.numeric(iso_group$iso)==2,])
   iso_l <- droplevels(iso_group[as.numeric(iso_group$iso)==1,])
   #
