@@ -32,6 +32,9 @@
 #' @param separate_t0 Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
 #'   abundances at time zero that match in sample origin (\code{TRUE}) or using abundances at time zero that have been averaged across
 #'   each group of replicates (\code{FALSE}, the default). Requires that replicate matches have been recorded and specified in the \code{@@rep_num} slot.
+#' @param sequential_time Logical value indicating whether or not mortality (turnover) rates should be calculated by comparing the estimated proportion of
+#'   remaining unlabeled population size at time \code{t} to the unlabeled population at time \code{t-1} (\code{TRUE}) or to population size at the initial
+#'   timepoint (\code{FALSE}).
 #' @param rm_light_abund Logical value indicating whether to remove the abundance of taxa from light replicates (\code{TRUE}) and average abundances at
 #'   time \emph{t} only from labeled replicates. The alternative (value of \code{FALSE}) is to average abundances at time \emph{t} using all replicates,
 #'   labeled and unlabeled which is the default action.
@@ -75,12 +78,19 @@
 #'
 #'  # Calculate population fluxes
 #'
+#' @references
+#'  Hungate, Bruce, \emph{et al.} 2015. Quantitative microbial ecology through stable isotope probing.
+#'  \emph{Applied and Environmental Microbiology} \strong{81}: 7570 - 7581.
+#'
+#'  Koch, Benjamin, \emph{et al.} 2018. Estimating taxon-specific population dynamics in diverse microbial communities.
+#'  \emph{Ecosphere} \strong{9}: e02090.
+#'
 #' @export
 
 # NOTE: MAX_LABEL IS NOT CURRENTLY IMPLEMENTED IN THE CALCULATIONS. NEED TO LOOK AT BEST WAY TO DO THIS.
 calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, filter=FALSE, growth_model=c('exponential', 'linear'),
                      mu=0.6, correction=FALSE, offset_taxa=0.1, max_label=1, separate_label=FALSE, separate_light=TRUE, global_light=FALSE,
-                     separate_t0=FALSE, rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
+                     separate_t0=FALSE, sequential_time=FALSE, rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object', call.=FALSE)
   ci_method <- match.arg(tolower(ci_method))
   growth_model <- match.arg(tolower(growth_model))
@@ -122,6 +132,18 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     ft <- split_data(data, ft, data@qsip@rep_id)
     ft <- lapply(ft, colSums, na.rm=T)
     ft <- do.call(rbind, ft)
+    # remove samples with NA for rep_id, timepoint, or rep_group
+    ft <- valid_samples(data, ft, 'time')
+    time_group <- ft[[2]]; ft <- ft[[1]]
+    # identify lowest timepoint (doesn't have to be 0) and separate by that
+    ft_0 <- ft[as.numeric(time_group$time)==1,]
+    ft_t <- ft[as.numeric(time_group$time) > 1,]
+    time_0 <- droplevels(time_group[as.numeric(time_group$time)==1,])
+    time_t <- droplevels(time_group[as.numeric(time_group$time) > 1,])
+    # length of incubation times?
+    incubate_t <- unique(time_t$time)
+    incubate_t <- as.numeric(as.character(incubation_t))
+    #
     # extract MW-labeled and convert to S3 matrix with taxa as columns
     mw_h <- data@qsip[['mw_label']]
     mw_l <- data@qsip[['mw_light']]
@@ -129,13 +151,13 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
       if(is.matrix(mw_h)) mw_h <- t(mw_h)
       if(is.matrix(mw_l)) mw_l <- t(mw_l)
     }
-    if(separate_label) tax_names <- colnames(mw_h) else tax_names <- names(mw_h)
+    if(is.matrix(mw_h)) tax_names <- colnames(mw_h) else tax_names <- names(mw_h)
     # create MW heavy max
     mw_max <- (12.07747 * mu) + mw_l
     #
     # ----------------
     # Different methods of grouping data produce slightly different calculations
-    # These are coded as a 3-digit binary code based on 3 grouping criteria
+    # These are coded as a 5-digit binary code based on 3 grouping criteria
     #   - Replicate separated by group:  0/1 (no/yes)
     #   - Labeled densities separated:   0/1
     #   - Unlabeled densities separated: 0/1
@@ -150,10 +172,46 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
       if(!separate_label) {
         if(!separate_light) {
           if(!separate_t0) {  # CODE 0000*
+            #
+            # average all abundances
+            ft_0 <- colMeans(ft_0, na.rm=T)
+            ft_t <- split_data(data, ft_t, time_t$time, grouping_w_phylosip=FALSE)
+            ft_t <- base::lapply(ft_t, colMeans, na.rm=T)
+            ft_t <- do.call(rbind, ft_t)
+            #
+            # calculate unlabeled abundances at time t
+            nl_t <- ft_t * ((mw_max - mw_h) / (mw_max - mw_l))
+            #
+            # calculate birth and death rates
+            if(growth_model=='exponential') {
+              #
+              b <- log(ft_t / nl_t) * (1/incubate_t)
+              #
+              if(!sequential_time) { # CODE 00000
+                d <- log(sweep(nl_t, 2, ft_0, '/')) * (1/incubate_t)
+              } else if(sequential_time) { # CODE 00001
+                ft_0 <- rbind(ft_0, nl_t[-nrow(nl_t),])
+                d <- log(sweep(nl_t, 2, ft_0, '/')) * (1/incubate_t)
+                #
+              }
+            } else if(growth_model=='linear') {
+              #
+              b <- ft_t - nl_t * (1/incubate_t)
+              #
+              if(!sequential_time) { # CODE 00000
+                d <- sweep(nl_t, 2, ft_0) * (1/incubate_t)
+              } else if(sequential_time) { # CODE 00001
+                ft_0 <- rbind(ft_0, nl_t[-nrow(nl_t),])
+                d <- sweep(nl_t, 2, ft_0) * (1/incubate_t)
+                #
+              }
+            }
+            #
           } else if(separate_t0) {  # CODE 0001*
           }
         } else if(separate_light) {
           if(!separate_t0) {  # CODE 0010*
+
           } else if(separate_t0) {  # CODE 0011*
           }
         }
