@@ -321,7 +321,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   if(length(data@qsip@timepoint)==1 && length(data@qsip@rep_group)==0) {
     data@qsip@rep_group <- character()
     # else remove timepoint:group interaction, and replace with original grouping
-  } else if(length(data@qsip@timepoint)==1 && length(data@qsip@rep_group)==1) {
+  } else if(length(data@qsip@timepoint)==1 && exists('orig_group')) {
     data@sam_data$timepoint.rep_group <- NULL
     data@qsip@rep_group <- orig_group
   }
