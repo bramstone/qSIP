@@ -318,7 +318,7 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
   attributes(data@qsip[['mw_light']])$calc_method <- output_attr
   #
   # if timepoint used as temporary grouping, remove the assignment
-  if(length(data@qsip@timepoint)==1 && length(data@qsip@rep_group)==0) {
+  if(length(data@qsip@timepoint)==1 && !exists('orig_group')) {
     data@qsip@rep_group <- character()
     # else remove timepoint:group interaction, and replace with original grouping
   } else if(length(data@qsip@timepoint)==1 && exists('orig_group')) {
