@@ -27,7 +27,9 @@
 #' @param separate_label Logical value indicating whether or not WAD-label scores should be averaged across all replicate groups or not.
 #'   If \code{FALSE}, labeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 #'   representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}, resulting in no averaging across replicates.
-#' @param match_replicate Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
+#' @param global_light Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
+#'   all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.
+#' @param separate_t0 Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
 #'   abundances at time zero that match in sample origin (\code{TRUE}) or using abundances at time zero that have been averaged across
 #'   each group of replicates (\code{FALSE}, the default). Requires that replicate matches have been recorded and specified in the \code{@@rep_num} slot.
 #' @param rm_light_abund Logical value indicating whether to remove the abundance of taxa from light replicates (\code{TRUE}) and average abundances at
@@ -41,7 +43,7 @@
 #' @details Some details about proper isotope control-treatment factoring and timepoint specification. If weighted average densities or the
 #'   change in weighted average densities have not been calculated beforehand, \code{calc_pop} will compute those first.
 #'
-#'   Timepoint should be in units of days, so that birth will be new 16S copies d-1 and death will be loss of light 16S copies d-1.
+#'   Timepoint should be in units of days, so that birth will be new 16S copies d-1 and death will be loss (\emph{i.e.,} turnover) of light 16S copies d-1.
 #'   Use of different time increments will yield growth rates (e.g. per hour), but must be appropriate for the frequency of sampling.
 #'
 #'   The \code{recalc} argument is necessary to support the bootstrap subsampling implementation, which re-draws from the table of WAD
@@ -77,22 +79,23 @@
 
 # NOTE: MAX_LABEL IS NOT CURRENTLY IMPLEMENTED IN THE CALCULATIONS. NEED TO LOOK AT BEST WAY TO DO THIS.
 calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, filter=FALSE, growth_model=c('exponential', 'linear'),
-                     mu=0.6, correction=FALSE, offset_taxa=0.1, max_label=1, separate_light=FALSE, separate_label=TRUE, match_replicate=FALSE,
-                     rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
+                     mu=0.6, correction=FALSE, offset_taxa=0.1, max_label=1, separate_label=FALSE, separate_light=TRUE, global_light=FALSE,
+                     separate_t0=FALSE, rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object', call.=FALSE)
   ci_method <- match.arg(tolower(ci_method))
   growth_model <- match.arg(tolower(growth_model))
   if(data@qsip@iso!='18O') stop('Must use 18O-labeled treatment to calculate population change', call.=FALSE)
   if(length(data@qsip@timepoint)==0) stop('Must specify different sample times with timepoint', call.=FALSE)
   times <- data@sam_data[[data@qsip@timepoint]]
+  times <- times[!is.na(times)]
   if(nlevels(times)==1 || length(unique(times))==1) stop('Only one timepoint present in the data - cannot calculate population change', call.=FALSE)
   rm(times)
-  if(match_replicate && length(data@qsip@rep_num)==0) stop('Must specify replicate (sample origin) matches with rep_num', call.=FALSE)
+  if(separate_t0 && length(data@qsip@rep_num)==0) stop('Must specify replicate (sample origin) matches with rep_num', call.=FALSE)
   #
   # -------------------------------------------------------------
   # no CI and resampling
   #
-  if(ci_method=='') {
+  if(ci_method=='none') {
     # if recalculation wanted, do that
     # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_d_wad)
     if(recalc | is.null(data@qsip[['mw_label']])) {
@@ -102,12 +105,13 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
                                        offset_taxa=offset_taxa,
                                        separate_light=separate_light,
                                        separate_label=separate_label,
+                                       global_light=global_light,
                                        rel_abund=rel_abund,
                                        recalc=TRUE))
     }
     # transform sequencing abundances to 16S copy numbers
     # returns feature table (as matrix) with taxa as columns, samples as rows
-    ft <- copy_no(data)
+    ft <- copy_no(data, rel_abund=rel_abund)
     n_taxa <- ncol(ft)
     if(filter) {
       tax_names <- data@qsip@filter
@@ -118,10 +122,83 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     ft <- split_data(data, ft, data@qsip@rep_id)
     ft <- lapply(ft, colSums, na.rm=T)
     ft <- do.call(rbind, ft)
+    # extract MW-labeled and convert to S3 matrix with taxa as columns
+    mw_h <- data@qsip[['mw_label']]
+    mw_l <- data@qsip[['mw_light']]
+    if(phyloseq::taxa_are_rows(data)) {
+      if(is.matrix(mw_h)) mw_h <- t(mw_h)
+      if(is.matrix(mw_l)) mw_l <- t(mw_l)
+    }
+    if(separate_label) tax_names <- colnames(mw_h) else tax_names <- names(mw_h)
+    # create MW heavy max
+    mw_max <- (12.07747 * mu) + mw_l
+    #
+    # ----------------
+    # Different methods of grouping data produce slightly different calculations
+    # These are coded as a 3-digit binary code based on 3 grouping criteria
+    #   - Replicate separated by group:  0/1 (no/yes)
+    #   - Labeled densities separated:   0/1
+    #   - Unlabeled densities separated: 0/1
+    #   - Time=0 abundances separated:   0/1
+    #   - Sequential timepoint calcs:    0/1 (no - calc from time=0 / yes)
+    # Example: 10101 means calculate pop flux with seprate groups, separate labeled values, averaged unlabeled values,
+    #   separate time 0 abundances, and pop rates from the second timepoint will be calculated using abundances from the first timepoint
+    # ----------------
+    #
+    # if there is no replicate grouping
+    if(length(data@qsip@rep_group)==0) {
+      if(!separate_label) {
+        if(!separate_light) {
+          if(!separate_t0) {  # CODE 0000*
+          } else if(separate_t0) {  # CODE 0001*
+          }
+        } else if(separate_light) {
+          if(!separate_t0) {  # CODE 0010*
+          } else if(separate_t0) {  # CODE 0011*
+          }
+        }
+      } else if(separate_label) {
+        if(!separate_light) {
+          if(!separate_t0) {  # CODE 0100*
+          } else if(separate_t0) {  # CODE 0101*
+          }
+        } else if(separate_light) {
+          if(!separate_t0) {  # CODE 0110*
+          } else if(separate_t0) {  # CODE 0111*
+          }
+        }
+      }
+    } else if(length(data@qsip@rep_group)==0) {
+      if(!separate_label) {
+        if(!separate_light) {
+          if(!separate_t0) {  # CODE 1000*
+          } else if(separate_t0) {  # CODE 1001*
+          }
+        } else if(separate_light) {
+          if(!separate_t0) {  # CODE 1010*
+          } else if(separate_t0) {  # CODE 1011*
+          }
+        }
+      } else if(separate_label) {
+        if(!separate_light) {
+          if(!separate_t0) {  # CODE 1100*
+          } else if(separate_t0) {  # CODE 1101*
+          }
+        } else if(separate_light) {
+          if(!separate_t0) {  # CODE 1110*
+          } else if(separate_t0) {  # CODE 1111*
+          }
+        }
+      }
+    }
+
+
+
+
     # separate samples based on timepoint, keeping only valid samples
     # if matching replicates, re-order and match according to replicate number
-    if(match_replicate && length(data@qsip@rep_num)==1) {
-      ft <- valid_samples(data, ft, 'time', match_replicate=TRUE)
+    if(separate_t0 && length(data@qsip@rep_num)==1) {
+      ft <- valid_samples(data, ft, 'time', separate_t0=TRUE)
       time_group <- ft[[2]]; ft <- ft[[1]]
     } else{
       ft <- valid_samples(data, ft, 'time')
@@ -142,7 +219,7 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
       ft <- ft[match(time_group2$interaction, names(ft))]
       ft_0 <- ft[as.numeric(time_group2$time)==1]
       # average time 0 only if not matching abundances to each replicate across incubation
-      if(!match_replicate) {
+      if(!separate_t0) {
         ft_0 <- base::lapply(ft_0, colMeans, na.rm=TRUE)
       }
       ft[as.numeric(time_group2$time)==1] <- ft_0
