@@ -41,6 +41,11 @@ This parameter is passed to \code{calc_wad}.}
   of molecular weights for each taxon at each group of replicates in the labeled and unlabeled groups. The row and column
   specifications will mirror those of the \code{phylosip}'s \code{\link{otu_table}}, meaning if taxa are listed on the table rows,
   they will in the resulting S4 Matrix class.
+
+  If timepoint is specified through \code{data@qsip@timepoint}, then \code{calc_mw} will group molecular weights by timepoint as a grouping factor.
+  If both \code{data@qsip@timepoint} and \code{data@qsip@rep_group} are specified, then \code{calc_mw} will group molecular weights by the
+  interaction of these terms. There is no option to change this behavior except by removing the specification for \code{data@qsip@timepoint}.
+  This is because calculating molecular weights for separate timepoints is a necessity in \code{\link{calc_pop}}
 }
 \description{
 Calculates molecular weights of microbial taxa due to isotope incorporation

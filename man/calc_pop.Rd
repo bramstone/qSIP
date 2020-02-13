@@ -7,9 +7,9 @@
 calc_pop(data, ci_method = c("none", "bootstrap"), ci = 0.95,
   iters = 999, filter = FALSE, growth_model = c("exponential",
   "linear"), mu = 0.6, correction = FALSE, offset_taxa = 0.1,
-  max_label = 1, separate_light = FALSE, separate_label = TRUE,
-  match_replicate = FALSE, rm_light_abund = FALSE, rel_abund = TRUE,
-  recalc = TRUE)
+  max_label = 1, separate_label = FALSE, separate_light = TRUE,
+  global_light = FALSE, separate_t0 = FALSE, rm_light_abund = FALSE,
+  rel_abund = TRUE, recalc = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -41,15 +41,18 @@ Default is \code{0.1} indicating 10 percent of taxa with the lowest difference i
 Keeping the value at \code{1} will ensure that the maximum possible atom excess value of 1 corresponds to complete updake of the isotope.
 Recommended for experiments with lower atom percent enrichment treatments (see Details).}
 
-\item{separate_light}{Logical value indicating whether or not WAD-light scores should be averaged across all replicate groups or not.
-If \code{FALSE}, unlabeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
-representing it's genetic molecular weight in the absence of isotope addition.}
-
 \item{separate_label}{Logical value indicating whether or not WAD-label scores should be averaged across all replicate groups or not.
 If \code{FALSE}, labeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
 representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}, resulting in no averaging across replicates.}
 
-\item{match_replicate}{Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
+\item{separate_light}{Logical value indicating whether or not WAD-light scores should be averaged across all replicate groups or not.
+If \code{FALSE}, unlabeled WAD scores across all replicate groups will be averaged, creating a single molecular weight score per taxon
+representing it's genetic molecular weight in the absence of isotope addition.}
+
+\item{global_light}{Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
+all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.}
+
+\item{separate_t0}{Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
 abundances at time zero that match in sample origin (\code{TRUE}) or using abundances at time zero that have been averaged across
 each group of replicates (\code{FALSE}, the default). Requires that replicate matches have been recorded and specified in the \code{@rep_num} slot.}
 
@@ -79,7 +82,7 @@ Calculates population growth and death rates
 Some details about proper isotope control-treatment factoring and timepoint specification. If weighted average densities or the
   change in weighted average densities have not been calculated beforehand, \code{calc_pop} will compute those first.
 
-  Timepoint should be in units of days, so that birth will be new 16S copies d-1 and death will be loss of light 16S copies d-1.
+  Timepoint should be in units of days, so that birth will be new 16S copies d-1 and death will be loss (\emph{i.e.,} turnover) of light 16S copies d-1.
   Use of different time increments will yield growth rates (e.g. per hour), but must be appropriate for the frequency of sampling.
 
   The \code{recalc} argument is necessary to support the bootstrap subsampling implementation, which re-draws from the table of WAD
@@ -100,6 +103,13 @@ Some details about proper isotope control-treatment factoring and timepoint spec
 
  # Calculate population fluxes
 
+}
+\references{
+Hungate, Bruce, \emph{et al.} 2015. Quantitative microbial ecology through stable isotope probing.
+ \emph{Applied and Environmental Microbiology} \strong{81}: 7570 - 7581.
+
+ Koch, Benjamin, \emph{et al.} 2018. Estimating taxon-specific population dynamics in diverse microbial communities.
+ \emph{Ecosphere} \strong{9}: e02090.
 }
 \seealso{
 \code{\link{calc_mw}}
