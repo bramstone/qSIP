@@ -169,9 +169,8 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         mw_h <- (((wh - wl)/wl) + 1) * mw_l
       }
     }
-  }
   # if there is replicate grouping
-  if(length(data@qsip@rep_group)==1) {
+  } else if(length(data@qsip@rep_group)==1) {
     #
     wh <- split_data(data, wh, iso_h$interaction, grouping_w_phylosip=FALSE, keep_names=1)
     wl <- split_data(data, wl, iso_l$interaction, grouping_w_phylosip=FALSE, keep_names=1)
