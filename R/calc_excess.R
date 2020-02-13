@@ -158,7 +158,10 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
     } else { # ALL OTHER CODES
       #
       excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
+      #
       # adjust for maximum possible labeling
+      # when averaging atom excess values, you can average your max label adjustment and multiply the averages together
+      # same value as if you calculated atom excess per sample by max label per sample, THEN averaged afterwards
       #
     }
     # organize and add new data as S4 matrix
