@@ -61,7 +61,7 @@ split_data <- function(data, new_data, grouping, grouping_w_phylosip=T, keep_nam
     sam_names <- rownames(new_data)
     sam_names <- split(sam_names, grouping)
   } else if(keep_names==2) {
-    sam_names <- rownames(new_data)
+    sam_names <- colnames(new_data)
     sam_names <- split(sam_names, grouping)
   }
   n_taxa <- ncol(new_data)
