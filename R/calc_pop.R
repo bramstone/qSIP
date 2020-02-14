@@ -291,6 +291,7 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
             #
           } else if(separate_time) {  # CODE 0011*
             #
+            # WORK ON THIS NEXT
             # remove light abundances or average light and labeled abundances?
             if(rm_light_abund) {
               nt_t <- nt_t[as.numeric(time_t$iso)==2,]
