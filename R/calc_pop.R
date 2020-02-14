@@ -29,8 +29,8 @@
 #'   representing it's genetic molecular weight as a result of isotope addition. The default is \code{TRUE}, resulting in no averaging across replicates.
 #' @param global_light Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
 #'   all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.
-#' @param separate_t0 Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
-#'   abundances at time zero that match in sample origin (\code{TRUE}) or using abundances at time zero that have been averaged across
+#' @param separate_time Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
+#'   abundances that match in sample origin (\code{TRUE}) or using abundances that have been averaged across
 #'   each group of replicates (\code{FALSE}, the default). Requires that replicate matches have been recorded and specified in the \code{@@rep_num} slot.
 #' @param sequential_time Logical value indicating whether or not mortality (turnover) rates should be calculated by comparing the estimated proportion of
 #'   remaining unlabeled population size at time \code{t} to the unlabeled population at time \code{t-1} (\code{TRUE}) or to population size at the initial
@@ -90,7 +90,7 @@
 # NOTE: MAX_LABEL IS NOT CURRENTLY IMPLEMENTED IN THE CALCULATIONS. NEED TO LOOK AT BEST WAY TO DO THIS.
 calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, filter=FALSE, growth_model=c('exponential', 'linear'),
                      mu=0.6, correction=FALSE, offset_taxa=0.1, max_label=1, separate_label=FALSE, separate_light=TRUE, global_light=FALSE,
-                     separate_t0=FALSE, sequential_time=FALSE, rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
+                     separate_time=FALSE, sequential_time=FALSE, rm_light_abund=FALSE, rel_abund=TRUE, recalc=TRUE) {
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object', call.=FALSE)
   ci_method <- match.arg(tolower(ci_method))
   growth_model <- match.arg(tolower(growth_model))
@@ -100,7 +100,7 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
   times <- times[!is.na(times)]
   if(nlevels(times)==1 || length(unique(times))==1) stop('Only one timepoint present in the data - cannot calculate population change', call.=FALSE)
   rm(times)
-  if(separate_t0 && length(data@qsip@rep_num)==0) stop('Must specify replicate (sample origin) matches with rep_num', call.=FALSE)
+  if(separate_time && length(data@qsip@rep_num)==0) stop('Must specify replicate (sample origin) matches with rep_num', call.=FALSE)
   #
   # -------------------------------------------------------------
   # no CI and resampling
@@ -121,28 +121,29 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     }
     # transform sequencing abundances to 16S copy numbers
     # returns feature table (as matrix) with taxa as columns, samples as rows
-    ft <- copy_no(data, rel_abund=rel_abund)
-    n_taxa <- ncol(ft)
+    nt <- copy_no(data, rel_abund=rel_abund)
+    n_taxa <- ncol(nt)
     if(filter) {
       tax_names <- data@qsip@filter
-      ft <- ft[,colnames(ft) %in% tax_names]
+      nt <- nt[,colnames(nt) %in% tax_names]
     }
-    tax_names <- colnames(ft)
+    tax_names <- colnames(nt)
     # calculate per-taxon total 16S copy abundance for each sample (i.e., sum over fractions)
-    ft <- split_data(data, ft, data@qsip@rep_id)
-    ft <- lapply(ft, colSums, na.rm=T)
-    ft <- do.call(rbind, ft)
+    nt <- split_data(data, nt, data@qsip@rep_id)
+    nt <- lapply(nt, colSums, na.rm=T)
+    nt <- do.call(rbind, nt)
     # remove samples with NA for rep_id, timepoint, or rep_group
-    ft <- valid_samples(data, ft, 'time')
-    time_group <- ft[[2]]; ft <- ft[[1]]
+    nt <- valid_samples(data, nt, 'time')
+    time_group <- nt[[2]]; nt <- nt[[1]]
+    # identify labeling in samples
+    iso_reps <- iso_grouping(data, data@qsip@iso_trt, data@qsip@rep_id, data@qsip@rep_group)
+    time_group <- merge(time_group, iso_reps[,c('replicate', 'iso')], all.x=TRUE)
+    time_group <- time_group[match(rownames(nt), time_group$replicate),]
     # identify lowest timepoint (doesn't have to be 0) and separate by that
-    ft_0 <- ft[as.numeric(time_group$time)==1,]
-    ft_t <- ft[as.numeric(time_group$time) > 1,]
+    nt_0 <- nt[as.numeric(time_group$time)==1,]
+    nt_t <- nt[as.numeric(time_group$time) > 1,]
     time_0 <- droplevels(time_group[as.numeric(time_group$time)==1,])
     time_t <- droplevels(time_group[as.numeric(time_group$time) > 1,])
-    # length of incubation times?
-    incubate_t <- unique(time_t$time)
-    incubate_t <- as.numeric(as.character(incubation_t))
     #
     # extract MW-labeled and convert to S3 matrix with taxa as columns
     mw_h <- data@qsip[['mw_label']]
@@ -169,87 +170,219 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     #
     # if there is no replicate grouping
     if(length(data@qsip@rep_group)==0) {
+      # w/o replicate grouping, only split is based on timepoint
+      unique_time_t <- unique(time_t[,c('time', 'interaction')])
+      #
       if(!separate_label) {
         if(!separate_light) {
-          if(!separate_t0) {  # CODE 0000*
+          if(!separate_time) {  # CODE 0000*
             #
             # average all abundances
-            ft_0 <- colMeans(ft_0, na.rm=T)
-            ft_t <- split_data(data, ft_t, time_t$time, grouping_w_phylosip=FALSE)
-            ft_t <- base::lapply(ft_t, colMeans, na.rm=T)
-            ft_t <- do.call(rbind, ft_t)
+            nt_0 <- colMeans(nt_0, na.rm=T)
+            if(rm_light_abund) {
+              nt_t <- nt_t[as.numeric(time_t$iso)==2,]
+              time_t <- time_t[as.numeric(time_t$iso)==2,]
+            }
+            nt_t <- split_data(data, nt_t, time_t$time, grouping_w_phylosip=FALSE)
+            nt_t <- base::lapply(nt_t, colMeans, na.rm=T)
+            nt_t <- do.call(rbind, nt_t)
+            #
+            # length of incubation times?
+            incubate_t <- unique_time_t$time
+            incubate_t <- as.numeric(as.character(incubate_t))
             #
             # calculate unlabeled abundances at time t
-            nl_t <- ft_t * ((mw_max - mw_h) / (mw_max - mw_l))
+            nl_t <- nt_t * ((mw_max - mw_h) / (mw_max - mw_l))
             #
-            # calculate birth and death rates
-            if(growth_model=='exponential') {
-              #
-              b <- log(ft_t / nl_t) * (1/incubate_t)
-              #
-              if(!sequential_time) { # CODE 00000
-                d <- log(sweep(nl_t, 2, ft_0, '/')) * (1/incubate_t)
-              } else if(sequential_time) { # CODE 00001
-                ft_0 <- rbind(ft_0, nl_t[-nrow(nl_t),])
-                d <- log(sweep(nl_t, 2, ft_0, '/')) * (1/incubate_t)
-                #
-              }
-            } else if(growth_model=='linear') {
-              #
-              b <- ft_t - nl_t * (1/incubate_t)
-              #
-              if(!sequential_time) { # CODE 00000
-                d <- sweep(nl_t, 2, ft_0) * (1/incubate_t)
-              } else if(sequential_time) { # CODE 00001
-                ft_0 <- rbind(ft_0, nl_t[-nrow(nl_t),])
-                d <- sweep(nl_t, 2, ft_0) * (1/incubate_t)
-                #
-              }
+            # add different timepoints to time 0 for sequential death rates or just repeat time 0?
+            if(sequential_time) { # CODE 00001
+              nt_0 <- rbind(nt_0, nl_t[-nrow(nl_t),])
+            } else { # CODE 00000
+              nt_00 <- vector('list', nrow(nl_t))
+              nt_00 <- base::lapply(nt_00, function(x) nt_0)
+              nt_0 <- do.call(rbind, nt_00)
             }
             #
-          } else if(separate_t0) {  # CODE 0001*
+          } else if(separate_time) {  # CODE 0001*
+            #
+            # remove light abundances or average light and labeled abundances?
+            if(rm_light_abund) {
+              nt_t <- nt_t[as.numeric(time_t$iso)==2,]
+              time_t <- time_t[as.numeric(time_t$iso)==2,]
+            } else {
+              reps <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
+              names(reps) <- c('replicate', 'replicate_num')
+              time_t <- merge(time_t, reps, all.x=TRUE)
+              time_t <- time_t[match(rownames(nt_t), time_t$replicate),]
+              nt_t <- split_data(data, nt_t, time_t$rep_num, grouping_w_phylosip=FALSE, keep_names=1)
+              nt_t <- base::lapply(nt_t, colMeans, na.rm=TRUE)
+              nt_t <- do.call(rbind, nt_t)
+            }
+            # split time t abundances, and MWs by timepoint
+            nt_t <- split_data(data, nt_t, time_t$time, grouping_w_phylosip=FALSE, keep_names=1)
+            mw_h <- split_data(data, mw_h, unique_time_t$time, grouping_w_phylosip=FALSE)
+            mw_l <- split_data(data, mw_l, unique_time_t$time, grouping_w_phylosip=FALSE)
+            mw_max <- split_data(data, mw_max, unique_time_t$time, grouping_w_phylosip=FALSE)
+            #
+            # length of incubation times?
+            incubate_t <- time_t$time
+            incubate_t <- as.numeric(as.character(incubate_t))
+            #
+            # calculate unlabeled abundances at time t
+            enrich <- base::Map(function(mwH, mwL, mwMax) (mwMax - mwH) / (mwMax - mwL),
+                                mw_h, mw_l, mw_max)
+            nl_t <- base::Map(function(Nt, enrich) sweep(Nt, 2, enrich, '*'), nt_t, enrich)
+            #
+            # add different timepoints to time 0 for sequential death rates or just repeat time 0?
+            if(sequential_time) { # CODE 00011
+              nt_0 <- rbind(nt_0, nl_t[[-length(nl_t)]])
+            } else { # CODE 00010
+              nt_00 <- vector('list', length(nl_t))
+              nt_00 <- base::lapply(nt_00, function(x) nt_0)
+              nt_0 <- do.call(rbind, nt_00)
+            }
+            #
+            nl_t <- do.call(rbind, nl_t)
+            nt_t <- do.call(rbind, nt_t)
           }
+          #
         } else if(separate_light) {
-          if(!separate_t0) {  # CODE 0010*
-
-          } else if(separate_t0) {  # CODE 0011*
+          if(!separate_time) {  # CODE 0001*
+            #
+            # average all abundances
+            nt_0 <- colMeans(nt_0, na.rm=T)
+            if(rm_light_abund) {
+              nt_t <- nt_t[as.numeric(time_t$iso)==2,]
+              time_t2 <- time_t[as.numeric(time_t$iso)==2,]
+            }
+            time_t1 <- time_t[as.numeric(time_t$iso)==1,]
+            # split time t abundances, and MWs by timepoint
+            nt_t <- split_data(data, nt_t, time_t2$time, grouping_w_phylosip=FALSE)
+            nt_t <- base::lapply(nt_t, colMeans, na.rm=T)
+            mw_h <- split_data(data, mw_h, time_t1$time, grouping_w_phylosip=FALSE)
+            mw_l <- split_data(data, mw_l, time_t1$time, grouping_w_phylosip=FALSE)
+            mw_max <- split_data(data, mw_max, time_t1$time, grouping_w_phylosip=FALSE)
+            #
+            # length of incubation times (focusing only on 16O)
+            incubate_t <- time_t1$time
+            incubate_t <- as.numeric(as.character(incubate_t))
+            #
+            # calculate unlabeled abundances at time t
+            enrich <- base::Map(function(mwH, mwL, mwMax) (mwMax - mwH) / (mwMax - mwL),
+                                mw_h, mw_l, mw_max)
+            nl_t <- base::Map(function(Nt, enrich) sweep(enrich, 2, Nt, '*'), nt_t, enrich)
+            #
+            # create abundance matrix of same dimensions as nl_t
+            mat_0 <- base::lapply(nl_t, function(x) {x[] <- 0; x})
+            mat_nt <- base::Map(function(mat_0, Nt) sweep(mat_0, 2, Nt, '+'), mat_0, nt_t)
+            mat_n0 <- base::lapply(mat_0, function(x) sweep(x, 2, nt_0, '+'))
+            #
+            nl_t <- do.call(rbind, nl_t)
+            nt_t <- do.call(rbind, mat_nt)
+            nt_0 <- do.call(rbind, mat_n0)
+            rm(mat_0)
+            #
+            # add different timepoints to time 0 for sequential death rates or just repeat time 0?
+            if(sequential_time) { # CODE 00101
+              nt_0 <- nt_0[1:nrow(time_0),]
+              all_but_last_t <- as.numeric(time_t1$time) < max(as.numeric(time_t1$time))
+              nt_0 <- rbind(nt_0, nl_t[all_but_last_t,])
+            } # else: CODE 00100
+            #
+          } else if(separate_time) {  # CODE 0011*
+            #
+            # remove light abundances or average light and labeled abundances?
+            if(rm_light_abund) {
+              nt_t <- nt_t[as.numeric(time_t$iso)==2,]
+              time_t <- time_t[as.numeric(time_t$iso)==2,]
+            } else {
+              reps <- unique(as(data@sam_data[,c(data@qsip@rep_id, data@qsip@rep_num)], 'data.frame'))
+              names(reps) <- c('replicate', 'replicate_num')
+              time_t <- merge(time_t, reps, all.x=TRUE)
+              time_t <- time_t[match(rownames(nt_t), time_t$replicate),]
+              nt_t <- split_data(data, nt_t, time_t$rep_num, grouping_w_phylosip=FALSE, keep_names=1)
+              nt_t <- base::lapply(nt_t, colMeans, na.rm=TRUE)
+              nt_t <- do.call(rbind, nt_t)
+            }
+            # split time t abundances, and MWs by timepoint
+            nt_t <- split_data(data, nt_t, time_t$time, grouping_w_phylosip=FALSE, keep_names=1)
+            mw_h <- split_data(data, mw_h, unique_time_t$time, grouping_w_phylosip=FALSE)
+            mw_l <- split_data(data, mw_l, unique_time_t$time, grouping_w_phylosip=FALSE)
+            mw_max <- split_data(data, mw_max, unique_time_t$time, grouping_w_phylosip=FALSE)
+            #
+            # length of incubation times?
+            incubate_t <- time_t$time
+            incubate_t <- as.numeric(as.character(incubate_t))
+            #
+            # calculate unlabeled abundances at time t
+            enrich <- base::Map(function(mwH, mwL, mwMax) (mwMax - mwH) / (mwMax - mwL),
+                                mw_h, mw_l, mw_max)
+            nl_t <- base::Map(function(Nt, enrich) sweep(Nt, 2, enrich, '*'), nt_t, enrich)
+            #
+            # add different timepoints to time 0 for sequential death rates or just repeat time 0?
+            if(sequential_time) { # CODE 00111
+              nt_0 <- rbind(nt_0, nl_t[[-length(nl_t)]])
+            } else { # CODE 00110
+              nt_00 <- vector('list', length(nl_t))
+              nt_00 <- base::lapply(nt_00, function(x) nt_0)
+              nt_0 <- do.call(rbind, nt_00)
+            }
+            #
+            nl_t <- do.call(rbind, nl_t)
+            nt_t <- do.call(rbind, nt_t)
+            #
           }
         }
+        #
       } else if(separate_label) {
         if(!separate_light) {
-          if(!separate_t0) {  # CODE 0100*
-          } else if(separate_t0) {  # CODE 0101*
+          if(!separate_time) {  # CODE 0100*
+          } else if(separate_time) {  # CODE 0101*
           }
         } else if(separate_light) {
-          if(!separate_t0) {  # CODE 0110*
-          } else if(separate_t0) {  # CODE 0111*
+          if(!separate_time) {  # CODE 0110*
+          } else if(separate_time) {  # CODE 0111*
           }
         }
       }
     } else if(length(data@qsip@rep_group)==0) {
       if(!separate_label) {
         if(!separate_light) {
-          if(!separate_t0) {  # CODE 1000*
-          } else if(separate_t0) {  # CODE 1001*
+          if(!separate_time) {  # CODE 1000*
+          } else if(separate_time) {  # CODE 1001*
           }
         } else if(separate_light) {
-          if(!separate_t0) {  # CODE 1010*
-          } else if(separate_t0) {  # CODE 1011*
+          if(!separate_time) {  # CODE 1010*
+          } else if(separate_time) {  # CODE 1011*
           }
         }
       } else if(separate_label) {
         if(!separate_light) {
-          if(!separate_t0) {  # CODE 1100*
-          } else if(separate_t0) {  # CODE 1101*
+          if(!separate_time) {  # CODE 1100*
+          } else if(separate_time) {  # CODE 1101*
           }
         } else if(separate_light) {
-          if(!separate_t0) {  # CODE 1110*
-          } else if(separate_t0) {  # CODE 1111*
+          if(!separate_time) {  # CODE 1110*
+          } else if(separate_time) {  # CODE 1111*
           }
         }
       }
     }
-
+    #
+    # Abundance matrices should be same dimensions
+    if(!isTRUE(all.equal(dim(nt_0), dim(nl_t)))) {
+      stop('Time 0 and time t abundance data should be same size for groupings specified but are not',
+           '\nCheck that @rep_num is correct or if @rep_group should be specified', call.=FALSE)
+    }
+    #
+    # calculate birth and death rates
+    if(growth_model=='exponential') {
+      b <- log(nt_t / nl_t) * (1/incubate_t)
+      d <- log(nl_t / nt_0) * (1/incubate_t)
+    } else if(growth_model=='linear') {
+      b <- (nt_t - nl_t) * (1/incubate_t)
+      d <- (nl_t - nt_0) * (1/incubate_t)
+    }
 
 
 
@@ -275,12 +408,12 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     # if keeping labeled 16S abundances and MWs separate ft will be in a list
     if(separate_label) {
       ft <- ft[match(time_group2$interaction, names(ft))]
-      ft_0 <- ft[as.numeric(time_group2$time)==1]
+      nt_0 <- ft[as.numeric(time_group2$time)==1]
       # average time 0 only if not matching abundances to each replicate across incubation
       if(!separate_t0) {
-        ft_0 <- base::lapply(ft_0, colMeans, na.rm=TRUE)
+        nt_0 <- base::lapply(nt_0, colMeans, na.rm=TRUE)
       }
-      ft[as.numeric(time_group2$time)==1] <- ft_0
+      ft[as.numeric(time_group2$time)==1] <- nt_0
       ft <- base::lapply(ft, function(x) {x[x==0] <- NA; x})
     # if averaging labeled 16S abundances and MWs ft will be in matrix
     } else {
@@ -299,9 +432,9 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     n_t_names <- paste0('n_t_',levels(time_group2$time))
     if(separate_label) { # get n_t values from list
       for(time in 1:nlevels(time_group2$time)) {
-        ft_t <- ft[time_group2$time==levels(time_group2$time)[time]]
-        assign(n_t_names[time], t(do.call(rbind, ft_t)))
-      }; rm(ft_t)
+        nt_t <- ft[time_group2$time==levels(time_group2$time)[time]]
+        assign(n_t_names[time], t(do.call(rbind, nt_t)))
+      }; rm(nt_t)
     } else { # get n_t values from matrix
       for(time in 1:nlevels(time_group2$time)) {
         assign(n_t_names[time], ft[,time_group2$time==levels(time_group2$time)[time]])
