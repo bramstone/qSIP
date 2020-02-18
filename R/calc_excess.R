@@ -113,9 +113,12 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
   if(ci_method=='none') {
     # if recalculation wanted, do that first
     # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_mw)
-    if(recalc | is.null(data@qsip[['mw_label']])) {
+    if((recalc | is.null(data@qsip[['mw_label']])) & length(data@qsip@density)==1) {
       data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
                       separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
+    } else if((recalc | is.null(data@qsip[['mw_label']])) & length(data@qsip@int_std_label)==1) {
+      data <- calc_d_waf(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
+                         separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
     }
     # extract MW-labeled and convert to S3 matrix with taxa as columns
     mw_h <- data@qsip[['mw_label']]
