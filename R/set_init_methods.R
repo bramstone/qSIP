@@ -1,10 +1,10 @@
-#' @export
+
 
 # setGeneric('initialize', function(.Object, ...) {
 #   standardGeneric('initialize')})
 
 #' The S4 method for initializing a qsip object
-#'
+#' @export
 setMethod('initialize', 'qsip',
           function(.Object,
                    density=character(0),
