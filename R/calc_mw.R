@@ -132,6 +132,13 @@ calc_mw <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, separ
         # ...........................................
       } else if(separate_light) { # CODE 001
         #
+        # WAD correction
+        if(correction) {
+          shift <- sweep(wl, 2, wh, function(wL, wH) wH - wL)
+          shift <- sort(shift, decreasing=FALSE)
+          shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
+          wh <- wh - shift
+        }
         # calculate GC content of each taxa
         gc <- (1 / 0.083506) * (wl - 1.646057)
         # calculate mol. weight of taxa
