@@ -5,6 +5,7 @@
 \title{Specify qSIP-related data to phylosip object}
 \usage{
 specify_qsip(data, density = "character", abund = "character",
+  int_std_light = "character", int_std_label = "character",
   rep_id = "character", rep_num = "character",
   rep_group = "character", iso = "character", iso_trt = "character",
   timepoint = "character", filter_levels = "data.frame",
@@ -16,6 +17,12 @@ specify_qsip(data, density = "character", abund = "character",
 \item{density}{Single length character matching to variable in \code{data} describing sample densities}
 
 \item{abund}{Single length character matching to variable in \code{data} describing sample 16S gene abundance}
+
+\item{int_std_light}{Single length character matching to variable in \code{data} describing the abundance of unlabeled internal standards
+in a sample. This column should generally be mostly \code{0} or \code{NA} with non-zero numbers in three-peak clusters identified by the user.}
+
+\item{int_std_label}{Single length character matching to variable in \code{data} describing the abundance of labeled internal standards
+in a sample. This column should generally be mostly \code{0} or \code{NA} with non-zero numbers in three-peak clusters identified by the user.}
 
 \item{rep_id}{Single length character matching to variable in \code{data} describing sample/replicate names to summarize across fractions.
 Required for calcualtion of weighted average DNA densities (\emph{per replicate})}

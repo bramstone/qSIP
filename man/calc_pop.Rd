@@ -8,8 +8,9 @@ calc_pop(data, ci_method = c("none", "bootstrap"), ci = 0.95,
   iters = 999, filter = FALSE, growth_model = c("exponential",
   "linear"), mu = 0.6, correction = FALSE, offset_taxa = 0.1,
   max_label = 1, separate_label = FALSE, separate_light = TRUE,
-  global_light = FALSE, separate_t0 = FALSE, rm_light_abund = FALSE,
-  rel_abund = TRUE, recalc = TRUE)
+  global_light = FALSE, separate_time = FALSE,
+  sequential_time = FALSE, rm_light_abund = FALSE, rel_abund = TRUE,
+  recalc = TRUE)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -52,9 +53,13 @@ representing it's genetic molecular weight in the absence of isotope addition.}
 \item{global_light}{Logical value indicating whether or not to use WAD-light scores that are global averages (\emph{i.e.,} averaged across
 all samples rather than averaged across any specified replicate groups). The default is \code{FALSE}.}
 
-\item{separate_t0}{Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
-abundances at time zero that match in sample origin (\code{TRUE}) or using abundances at time zero that have been averaged across
+\item{separate_time}{Logical value indicating whether or not per-capita rates for individual replicates should be calculated using
+abundances that match in sample origin (\code{TRUE}) or using abundances that have been averaged across
 each group of replicates (\code{FALSE}, the default). Requires that replicate matches have been recorded and specified in the \code{@rep_num} slot.}
+
+\item{sequential_time}{Logical value indicating whether or not mortality (turnover) rates should be calculated by comparing the estimated proportion of
+remaining unlabeled population size at time \code{t} to the unlabeled population at time \code{t-1} (\code{TRUE}) or to population size at the initial
+timepoint (\code{FALSE}).}
 
 \item{rm_light_abund}{Logical value indicating whether to remove the abundance of taxa from light replicates (\code{TRUE}) and average abundances at
 time \emph{t} only from labeled replicates. The alternative (value of \code{FALSE}) is to average abundances at time \emph{t} using all replicates,

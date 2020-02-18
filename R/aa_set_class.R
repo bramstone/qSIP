@@ -6,7 +6,7 @@
 #' @exportClass qsip
 setClass('qsip',
          slots=c(density='character', abund='character',
-                 int_std=light='character', int_std_label='character',
+                 int_std_light='character', int_std_label='character',
                  rep_id='character', rep_num='character',
                  rep_group='character',
                  iso='character', iso_trt='character',
