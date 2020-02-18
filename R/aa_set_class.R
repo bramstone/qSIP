@@ -7,7 +7,7 @@
 setClass('qsip',
          slots=c(density='character', abund='character',
                  int_std_light='character', int_std_label='character',
-                 rep_id='character', rep_num='character',
+                 frac_num='character', rep_id='character', rep_num='character',
                  rep_group='character',
                  iso='character', iso_trt='character',
                  timepoint='character', filter_levels='data.frameOrNULL',
