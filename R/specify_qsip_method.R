@@ -6,6 +6,10 @@
 #' @param data Data as a \code{phyloseq} object
 #' @param density Single length character matching to variable in \code{data} describing sample densities
 #' @param abund Single length character matching to variable in \code{data} describing sample 16S gene abundance
+#' @param int_std_light Single length character matching to variable in \code{data} describing the abundance of unlabeled internal standards
+#'   in a sample. This column should generally be mostly \code{0} or \code{NA} with non-zero numbers in three-peak clusters identified by the user.
+#' @param int_std_label Single length character matching to variable in \code{data} describing the abundance of labeled internal standards
+#'   in a sample. This column should generally be mostly \code{0} or \code{NA} with non-zero numbers in three-peak clusters identified by the user.
 #' @param rep_id Single length character matching to variable in \code{data} describing sample/replicate names to summarize across fractions.
 #'   Required for calcualtion of weighted average DNA densities (\emph{per replicate})
 #' @param rep_num Single length character matching to variable in \code{data} matching replicates from the same sample origin across treatments
@@ -43,19 +47,26 @@
 setGeneric('specify_qsip',
            valueClass=c('phyloseq', 'phylosip'),
            function(data,
-                    density='character', abund='character', rep_id='character', rep_num='character',
-                    rep_group='character', iso='character', iso_trt='character',
-                    timepoint='character', filter_levels='data.frame', filter='character', ...) {
+                    density='character', abund='character', int_std_light='character', int_std_label='character',
+                    rep_id='character', rep_num='character', rep_group='character',
+                    iso='character', iso_trt='character', timepoint='character',
+                    filter_levels='data.frame', filter='character', ...) {
              standardGeneric('specify_qsip')
            })
 
 setMethod('specify_qsip',
           signature(data='phyloseq'),
-          function(data, density=character(), abund=character(), rep_id=character(), rep_num=character(), rep_group=character(),
-                   iso=c('18O', '13C', '15N'), iso_trt=character(), timepoint=character(), filter_levels=NULL, filter=character()) {
-            if(missing(data)) stop('Must supply data as phyloseq object', call.=F)
+          function(data, density=character(), abund=character(), int_std_light=character(), int_std_label=character(),
+                   rep_id=character(), rep_num=character(), rep_group=character(),
+                   iso=c('18O', '13C', '15N'), iso_trt=character(), timepoint=character(),
+                   filter_levels=NULL, filter=character()) {
+            if(missing(data)) stop('Must supply data as phyloseq object', call.=FALSE)
             #            if(is.null(formula)) { # User input good (w/o formula)?
-            if(missing(density) || missing(abund)) stop('Must supply both sample densities and abundances', call.=F)
+            if(missing(abund) || (missing(density) || missing(int_std_light))) stop('Must supply abundances and either ',
+                                                                                    'density values or internal standards data', call.=FALSE)
+            # if using internal standards data, must include columns for unlabeled and labeld standards
+            if(missing(int_std_light) || missing(int_std_label)) stop('Must supply internal standards data ',
+                                                                      'for both labeled and unlabeled standards', call.=FALSE)
             # are supplied terms of single character length?
             matching_args <- as.list(environment()) # return function arguments supplied by user
             matching_args <- matching_args[!names(matching_args) %in% c('data', 'filter')]
@@ -63,7 +74,7 @@ setMethod('specify_qsip',
             multiple_input <- input_length > 1
             if(any(multiple_input)) {
               culprits <- names(matching_args)[which(multiple_input)]
-              stop('Arguments ', paste0(culprits, collapse=', '), 'are not of length 1', call.=F)
+              stop('Arguments ', paste0(culprits, collapse=', '), 'are not of length 1', call.=FALSE)
             }
             # do supplied terms match existing data names?
             matching_args <- matching_args[!names(matching_args) %in% 'iso'] # ignore iso from this
@@ -71,7 +82,7 @@ setMethod('specify_qsip',
             matching_args <- sapply(matching_args, match, data@sam_data@names)
             if(anyNA(matching_args)) {
               culprits <- names(matching_args)[which(is.na(matching_args))] # who doesn't match
-              stop('Arguments ', paste0(culprits, collapse=', '), ' do not match those in object @sam_data slot', call.=F)
+              stop('Arguments ', paste0(culprits, collapse=', '), ' do not match those in object @sam_data slot', call.=FALSE)
             }
             #            } else {  # User input good (w formula)?
             #              formula_terms <- eval_formula(formula)
@@ -88,6 +99,8 @@ setMethod('specify_qsip',
             data <- as(data, 'phylosip')
             if(!missing(density)) data@qsip@density <- density
             if(!missing(abund)) data@qsip@abund <-  abund
+            if(!missing(int_std_light)) data@qsip@int_std_light <- int_std_light
+            if(!missing(int_std_label)) data@qsip@int_std_label <- int_std_label
             if(!missing(rep_id)) data@qsip@rep_id <- rep_id
             if(!missing(rep_num)) data@qsip@rep_num <- rep_num
             if(!missing(rep_group)) data@qsip@rep_group <- rep_group
@@ -106,6 +119,8 @@ setMethod('specify_qsip',
           function(data, ...) {
             if(!missing(density)) data@qsip@density <- density
             if(!missing(abund)) data@qsip@abund <-  abund
+            if(!missing(int_std_light)) data@qsip@int_std_light <- int_std_light
+            if(!missing(int_std_label)) data@qsip@int_std_label <- int_std_label
             if(!missing(rep_id)) data@qsip@rep_id <- rep_id
             if(!missing(rep_num)) data@qsip@rep_num <- rep_num
             if(!missing(rep_group)) data@qsip@rep_group <- rep_group
