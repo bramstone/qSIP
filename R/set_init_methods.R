@@ -1,4 +1,4 @@
-#' @export
+#' @exportMethod
 
 setGeneric('initialize', function(.Object, ...) {
   standardGeneric('initialize')})
