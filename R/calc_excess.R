@@ -283,8 +283,8 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         light <- data@qsip[['waf_light']]
       }
       if(phyloseq::taxa_are_rows(data)) {
-        if(is.matrix(mw_h)) mw_h <- t(mw_h)
-        if(is.matrix(mw_l)) mw_l <- t(mw_l)
+        if(is.matrix(label)) label <- t(label)
+        if(is.matrix(light)) light <- t(light)
       }
       # atom excess (light/label values should be the same dimensions)
       if(length(data@qsip@density)==1) {
