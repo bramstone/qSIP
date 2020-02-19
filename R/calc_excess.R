@@ -97,21 +97,19 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       adjust <- 12.07747
       nat_abund <- 0.002000429
       #
-    } else if(data@qsip@iso=='13C') {
+    } else {
       mw_l <- data@qsip[['mw_light']]
       if(phyloseq::taxa_are_rows(data) && is.matrix(mw_l)) mw_l <- t(mw_l)
       wl <- (mw_l - 307.691) / 0.496
       gc <- (wl - 1.646057) / 0.083506
-      adjust <- (-0.4987282 * gc) + 9.974564
-      nat_abund <- 0.01111233
-      #
-    } else if(data@qsip@iso=='15N') {
-      mw_l <- data@qsip[['mw_light']]
-      if(phyloseq::taxa_are_rows(data) && is.matrix(mw_l)) mw_l <- t(mw_l)
-      wl <- (mw_l - 307.691) / 0.496
-      gc <- (wl - 1.646057) / 0.083506
-      adjust <- (0.5024851 * gc) + 3.517396
-      nat_abund <- 0.003663004
+      if(data@qsip@iso=='13C') {
+        adjust <- (-0.4987282 * gc) + 9.974564
+        nat_abund <- 0.01111233
+        #
+      } else if(data@qsip@iso=='15N') {
+        adjust <- (0.5024851 * gc) + 3.517396
+        nat_abund <- 0.003663004
+      }
       #
     }
   } else if(length(data@qsip@int_std_label)==1) {
