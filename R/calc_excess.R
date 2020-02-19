@@ -92,19 +92,38 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
   ci_method <- tolower(ci_method)
   ci_method <- match.arg(ci_method)
   # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
-  if(data@qsip@iso=='18O') {
-    adjust <- 12.07747
-    nat_abund <- 0.002000429
-  } else if(data@qsip@iso=='13C') {
-    wl <- data@qsip[['wad_light']]
-    gc <- (wl - 1.646057) / 0.083506
-    adjust <- (-0.4987282 * gc) + 9.974564
-    nat_abund <- 0.01111233
-  } else if(data@qsip@iso=='15N') {
-    wl <- data@qsip[['wad_light']]
-    gc <- (wl - 1.646057) / 0.083506
-    adjust <- (0.5024851 * gc) + 3.517396
-    nat_abund <- 0.003663004
+  if(length(data@qsip@density)==1) {
+    if(data@qsip@iso=='18O') {
+      adjust <- 12.07747
+      nat_abund <- 0.002000429
+      #
+    } else if(data@qsip@iso=='13C') {
+      mw_l <- data@qsip[['mw_light']]
+      if(phyloseq::taxa_are_rows(data) && is.matrix(mw_l)) mw_l <- t(mw_l)
+      wl <- (mw_l - 307.691) / 0.496
+      gc <- (wl - 1.646057) / 0.083506
+      adjust <- (-0.4987282 * gc) + 9.974564
+      nat_abund <- 0.01111233
+      #
+    } else if(data@qsip@iso=='15N') {
+      mw_l <- data@qsip[['mw_light']]
+      if(phyloseq::taxa_are_rows(data) && is.matrix(mw_l)) mw_l <- t(mw_l)
+      wl <- (mw_l - 307.691) / 0.496
+      gc <- (wl - 1.646057) / 0.083506
+      adjust <- (0.5024851 * gc) + 3.517396
+      nat_abund <- 0.003663004
+      #
+    }
+  } else if(length(data@qsip@int_std_label)==1) {
+    if(data@qsip@iso=='18O') {
+      tot_label_neutron <- 24
+    } else if(data@qsip@iso=='13C') {
+      # NEED TO ESTIMATE GC CONTENT
+      tot_label_neutron <- 6 + gc
+      # NEED TO ESTIMATE GC CONTENT
+    } else if(data@qsip@iso=='15N') {
+      tot_label_neutron <- 7 + gc
+    }
   }
   #
   # -------------------------------------------------------------
@@ -116,55 +135,83 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
     if((recalc | is.null(data@qsip[['mw_label']])) & length(data@qsip@density)==1) {
       data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
                       separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
-    } else if((recalc | is.null(data@qsip[['mw_label']])) & length(data@qsip@int_std_label)==1) {
+    } else if((recalc | is.null(data@qsip[['waf_label']])) & length(data@qsip@int_std_label)==1) {
       data <- calc_d_waf(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
                          separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
     }
-    # extract MW-labeled and convert to S3 matrix with taxa as columns
-    mw_h <- data@qsip[['mw_label']]
-    mw_l <- data@qsip[['mw_light']]
-    if(phyloseq::taxa_are_rows(data)) {
-      if(is.matrix(mw_h)) mw_h <- t(mw_h)
-      if(is.matrix(mw_l)) mw_l <- t(mw_l)
+    #
+    if(length(data@qsip@density)==1) {
+      # extract MWs and convert to S3 matrix with taxa as columns
+      label <- data@qsip[['mw_label']]
+      light <- data@qsip[['mw_light']]
+      #
+    } else if(length(data@qsip@int_std_label)==1) {
+      # extract WAFs and convert to S3 matrix with taxa as columns
+      label <- data@qsip[['waf_label']]
+      light <- data@qsip[['waf_light']]
+      # calculate the neutrons gained per fraction (assuming IS are 98% labeled and represent a diff in 27 neutrons)
+      av_d <- attributes(data@qsip[['waf']])$int_std_span # avg span btwn internal standard peaks
+      npf <- (27 * 0.98) / av_d
+      #
     }
-    if(separate_label) tax_names <- colnames(mw_h) else tax_names <- names(mw_h)
-    # create MW heavy max
-    mw_max <- (adjust + mw_l)
+    if(phyloseq::taxa_are_rows(data)) {
+      if(is.matrix(label)) label <- t(label)
+      if(is.matrix(light)) light <- t(light)
+    }
+    if(separate_label) tax_names <- colnames(label) else tax_names <- names(label)
+    #
     # calculate atom excess
     # For most calc code methods, the molecular weight values will be the same dimensions (handled by calc_mw)
     # calc codes 010 and 110 have different calculations
     if(separate_label && !separate_light) {
       if(length(data@qsip@rep_group)==0) { # CODE 010
         #
-        num <- sweep(mw_h, 2, mw_l)
-        denom <- mw_max - mw_l
-        excess <- sweep(num, 2, denom, '/') * (1 - nat_abund)
+        obs_diff <- sweep(label, 2, light)
+        #
+        if(length(data@qsip@density)==1) {
+          mw_max <- (adjust + light)
+          max_diff <- mw_max - light
+          excess <- sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund)
+        } else if(length(data@qsip@int_std_label)==1) {
+          excess <- (obs_diff * npf) / tot_label_neutron
+        }
         #
         # adjust for maximum possible labeling per sample
         #
       } else if(length(data@qsip@rep_group==1)) { # CODE 110
         #
+        mw_max <- (adjust + light)
         iso_group <- iso_grouping(data, data@qsip@iso_trt, data@qsip@rep_id, data@qsip@rep_group)
-        iso_group <- iso_group[match(rownames(mw_h), iso_group$replicate),]
-        mw_h <- split_data(data, mw_h, iso_group$grouping, grouping_w_phylosip=FALSE, keep_names=1)
-        mw_l <- split_data(data, mw_l, rownames(mw_l), grouping_w_phylosip=FALSE, keep_names=0)
+        iso_group <- iso_group[match(rownames(label), iso_group$replicate),]
+        label <- split_data(data, label, iso_group$grouping, grouping_w_phylosip=FALSE, keep_names=1)
+        light <- split_data(data, light, rownames(light), grouping_w_phylosip=FALSE, keep_names=0)
         mw_max <- split_data(data, mw_max, rownames(mw_max), grouping_w_phylosip=FALSE, keep_names=0)
         #
-        num <- base::Map(function(mwH, mwL) sweep(mwH, 2, mwL), mw_h, mw_l)
-        denom <- base::Map('-', mw_max, mw_l)
-        excess <- Map(function(num, denom) sweep(num, 2, denom, '/') * (1 - nat_abund), num, denom)
-        excess <- do.call(rbind, excess)
+        obs_diff <- base::Map(function(mwH, mwL) sweep(mwH, 2, mwL), label, light)
+        #
+        if(length(data@qsip@density)==1) {
+          max_diff <- base::Map('-', mw_max, light)
+          excess <- Map(function(obs_diff, max_diff) sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund), obs_diff, max_diff)
+          excess <- do.call(rbind, excess)
+        } else if(length(data@qsip@int_std_label)==1) {
+          excess <- (obs_diff * npf) / tot_label_neutron
+        }
         #
         # adjust for maximum possible labeling per sample
         #
       }
     } else { # ALL OTHER CODES
       #
-      excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
+      mw_max <- (adjust + light)
+      #
+      if(length(data@qsip@density)==1) {
+        excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
+      } else if(length(data@qsip@int_std_label)==1) {
+        excess <- ((label - light) * npf) / tot_label_neutron
+      }
       #
       # adjust for maximum possible labeling
-      # when averaging atom excess values, you can average your max label adjustment and multiply the averages together
-      # same value as if you calculated atom excess per sample by max label per sample, THEN averaged afterwards
+      # note: avg(EAF) / avg(Max_label) = avg(EAF / Max_label)
       #
     }
     # organize and add new data as S4 matrix
@@ -181,7 +228,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
   } else if(ci_method=='bootstrap') {
     # Calc WADs
     data <- suppressWarnings(calc_wad(data, filter=filter, rel_abund=rel_abund))
-    ft <- data@qsip[['wad']]
+    if(length(data@qsip@density)==1) ft <- data@qsip[['wad']] else ft <- data@qsip[['waf']]
     if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
     n_taxa <- ncol(ft)
     tax_names <- colnames(ft)
@@ -218,20 +265,35 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       ft_i <- mapply(function(x, y) x[y,,drop=FALSE], ft, subsample_i, SIMPLIFY=FALSE)
       ft_i <- recombine_in_order(ft_i, iso_group, n_taxa)
       rownames(ft_i) <- sam_names
-      data <- suppressWarnings(collate_results(data, ft_i, tax_names=tax_names, 'wad', sparse=TRUE))
-      data <- suppressWarnings(calc_mw(data,
-                                       separate_light=FALSE,
-                                       separate_label=FALSE,
-                                       global_light=global_light,
-                                       recalc=FALSE))
-      mw_h <- data@qsip[['mw_label']]
-      mw_l <- data@qsip[['mw_light']]
+      if(length(data@qsip@density)==1) {
+        data <- suppressWarnings(collate_results(data, ft_i, tax_names=tax_names, 'wad', sparse=TRUE))
+        data <- suppressWarnings(calc_mw(data,
+                                         separate_light=FALSE,
+                                         separate_label=FALSE,
+                                         global_light=global_light,
+                                         recalc=FALSE))
+        label <- data@qsip[['mw_label']]
+        light <- data@qsip[['mw_light']]
+      } else if(length(data@qsip@int_std_label)==1) {
+        data <- suppressWarnings(collate_results(data, ft_i, tax_names=tax_names, 'waf', sparse=TRUE))
+        data <- suppressWarnings(calc_d_waf(data,
+                                            separate_light=FALSE,
+                                            separate_label=FALSE,
+                                            global_light=global_light,
+                                            recalc=FALSE))
+        label <- data@qsip[['waf_label']]
+        light <- data@qsip[['waf_light']]
+      }
       if(phyloseq::taxa_are_rows(data)) {
         if(is.matrix(mw_h)) mw_h <- t(mw_h)
         if(is.matrix(mw_l)) mw_l <- t(mw_l)
       }
-      # atom excess (MW values should be the same dimensions)
-      excess <- ((mw_h - mw_l)/(mw_max - mw_l)) * (1 - nat_abund)
+      # atom excess (light/label values should be the same dimensions)
+      if(length(data@qsip@density)==1) {
+        excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
+      } else if(length(data@qsip@int_std_label)==1) {
+        excess <- ((label - light) * npf) / tot_label_neutron
+      }
       # adjust for differences maximum possible labeling
       #
       # organize and add data as single column in bootstrap output matrix
