@@ -228,6 +228,6 @@ calc_waf <- function(data, filter=FALSE, pool_unlabeled=TRUE, calc_wvf=FALSE, re
     data <- collate_results(data, wvf, tax_names=tax_names, 'wvf', sparse=TRUE)
   }
   # include data about the number of fractions separating labeled and unlabeled internal standards
-  attributes(data@qsip[['waf_label']])$int_std_span <- av_d
+  attributes(data@qsip[['waf']])$int_std_span <- av_d
   return(data)
 }
