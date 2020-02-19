@@ -6,10 +6,10 @@
 \usage{
 specify_qsip(data, density = "character", abund = "character",
   int_std_light = "character", int_std_label = "character",
-  rep_id = "character", rep_num = "character",
-  rep_group = "character", iso = "character", iso_trt = "character",
-  timepoint = "character", filter_levels = "data.frame",
-  filter = "character", ...)
+  frac_num = "character", rep_id = "character",
+  rep_num = "character", rep_group = "character", iso = "character",
+  iso_trt = "character", timepoint = "character",
+  filter_levels = "data.frame", filter = "character", ...)
 }
 \arguments{
 \item{data}{Data as a \code{phyloseq} object}
@@ -23,6 +23,9 @@ in a sample. This column should generally be mostly \code{0} or \code{NA} with n
 
 \item{int_std_label}{Single length character matching to variable in \code{data} describing the abundance of labeled internal standards
 in a sample. This column should generally be mostly \code{0} or \code{NA} with non-zero numbers in three-peak clusters identified by the user.}
+
+\item{frac_num}{Single length character matching to variable in \code{data} describing the fraction number within each sample.
+This is only necessary to specify if internal standards data will be used in calculating density shifts.}
 
 \item{rep_id}{Single length character matching to variable in \code{data} describing sample/replicate names to summarize across fractions.
 Required for calcualtion of weighted average DNA densities (\emph{per replicate})}
