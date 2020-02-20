@@ -84,14 +84,14 @@ calc_waf <- function(data, filter=FALSE, pool_unlabeled=TRUE, calc_wvf=FALSE, re
   # calculate the "span" or difference between labeled and unlabeled IS and correct individual sample fractions with this
   is_d <- base::Map('-', is_l, is_h)
   av_d <- mean(unlist(is_d), na.rm=T)
-  is_d <- base::lapply(is_d, function(x) -(x - av_d) / av_d)
+  is_d_adj <- base::lapply(is_d, function(x) -(x - av_d) / av_d)
   fn <- base::lapply(fn, function(x) {x[2:length(x)] <- 1; x})
-  fn <- base::Map('+', fn, is_d)
+  fn <- base::Map('+', fn, is_d_adj)
   fn <- base::lapply(fn, cumsum)
   # distances btwn peaks standardized, now anchor by location of unlabeled IS
   av_l <- mean(unlist(is_l), na.rm=T)
-  is_l <- base::lapply(is_l, function(x) av_l - x)
-  fn <- base::Map('+', fn, is_l) # labeled and unlabeled IS peaks should now align across all reps
+  is_l_adj <- base::lapply(is_l, function(x) av_l - x)
+  fn <- base::Map('+', fn, is_l_adj) # labeled and unlabeled IS peaks should now align across all reps
   # calculate relative abundances and WAFs
   ft <- base::lapply(ft, function(x) {x <- t(x); x <- t(x / rowSums(x, na.rm=T)); x[is.nan(x)] <- 0; x}) # create relative abundances
   ft <- base::Map(function(y, x) sweep(y, 1, x, '*'), ft, fn)
