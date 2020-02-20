@@ -114,13 +114,13 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
     }
   } else if(length(data@qsip@int_std_label)==1) {
     if(data@qsip@iso=='18O') {
-      tot_label_neutron <- 24
+      neutron_per_bp <- 24
     } else if(data@qsip@iso=='13C') {
       # NEED TO ESTIMATE GC CONTENT
-      tot_label_neutron <- 6 + gc
+      neutron_per_bp <- 19.5
       # NEED TO ESTIMATE GC CONTENT
     } else if(data@qsip@iso=='15N') {
-      tot_label_neutron <- 7 + gc
+      neutron_per_bp <- 7.5
     }
   }
   #
@@ -171,7 +171,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
           max_diff <- mw_max - light
           excess <- sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund)
         } else if(length(data@qsip@int_std_label)==1) {
-          excess <- (obs_diff * npf) / tot_label_neutron
+          excess <- (obs_diff * npf) / neutron_per_bp
         }
         #
         # adjust for maximum possible labeling per sample
