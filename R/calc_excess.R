@@ -201,9 +201,8 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       }
     } else { # ALL OTHER CODES
       #
-      mw_max <- (adjust + light)
-      #
       if(calc_w_density) {
+        mw_max <- adjust + light
         excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
       } else if(calc_w_int_std) {
         excess <- ((label - light) * npf) / tot_label_neutron
