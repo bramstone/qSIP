@@ -116,9 +116,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
     if(data@qsip@iso=='18O') {
       neutron_per_bp <- 24
     } else if(data@qsip@iso=='13C') {
-      # NEED TO ESTIMATE GC CONTENT
       neutron_per_bp <- 19.5
-      # NEED TO ESTIMATE GC CONTENT
     } else if(data@qsip@iso=='15N') {
       neutron_per_bp <- 7.5
     }
