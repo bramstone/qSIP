@@ -91,8 +91,10 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
   if(is(data)[1]!='phylosip') stop('Must provide phylosip object')
   ci_method <- tolower(ci_method)
   ci_method <- match.arg(ci_method)
+  calc_w_density <- length(data@qsip@density)==1
+  calc_w_int_std <- length(data@qsip@int_std_label)==1
   # calculate mol. weight heavy max (i.e., what is maximum possible labeling)
-  if(length(data@qsip@density)==1) {
+  if(calc_w_density) {
     if(data@qsip@iso=='18O') {
       adjust <- 12.07747
       nat_abund <- 0.002000429
@@ -112,7 +114,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       }
       #
     }
-  } else if(length(data@qsip@int_std_label)==1) {
+  } else if(calc_w_int_std) {
     if(data@qsip@iso=='18O') {
       neutron_per_bp <- 24
     } else if(data@qsip@iso=='13C') {
@@ -128,20 +130,21 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
   if(ci_method=='none') {
     # if recalculation wanted, do that first
     # this will also handle rep_id validity (through calc_wad) and rep_group/iso_trt validity (through calc_mw)
-    if((recalc | is.null(data@qsip[['mw_label']])) & length(data@qsip@density)==1) {
+    if((recalc | is.null(data@qsip[['mw_label']])) & calc_w_density) {
       data <- calc_mw(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
                       separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
-    } else if((recalc | is.null(data@qsip[['waf_label']])) & length(data@qsip@int_std_label)==1) {
+      #
+    } else if((recalc | is.null(data@qsip[['waf_label']])) & calc_w_int_std) {
       data <- calc_d_waf(data, filter=filter, correction=correction, offset_taxa=offset_taxa, separate_light=separate_light,
                          separate_label=separate_label, global_light=global_light, rel_abund=rel_abund, recalc=TRUE)
     }
     #
-    if(length(data@qsip@density)==1) {
+    if(calc_w_density) {
       # extract MWs and convert to S3 matrix with taxa as columns
       label <- data@qsip[['mw_label']]
       light <- data@qsip[['mw_light']]
       #
-    } else if(length(data@qsip@int_std_label)==1) {
+    } else if(calc_w_int_std) {
       # extract WAFs and convert to S3 matrix with taxa as columns
       label <- data@qsip[['waf_label']]
       light <- data@qsip[['waf_light']]
@@ -164,11 +167,11 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         #
         obs_diff <- sweep(label, 2, light)
         #
-        if(length(data@qsip@density)==1) {
+        if(calc_w_density) {
           mw_max <- (adjust + light)
           max_diff <- mw_max - light
           excess <- sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund)
-        } else if(length(data@qsip@int_std_label)==1) {
+        } else if(calc_w_int_std) {
           excess <- (obs_diff * npf) / neutron_per_bp
         }
         #
@@ -185,11 +188,11 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         #
         obs_diff <- base::Map(function(mwH, mwL) sweep(mwH, 2, mwL), label, light)
         #
-        if(length(data@qsip@density)==1) {
+        if(calc_w_density) {
           max_diff <- base::Map('-', mw_max, light)
           excess <- Map(function(obs_diff, max_diff) sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund), obs_diff, max_diff)
           excess <- do.call(rbind, excess)
-        } else if(length(data@qsip@int_std_label)==1) {
+        } else if(calc_w_int_std) {
           excess <- (obs_diff * npf) / tot_label_neutron
         }
         #
@@ -200,9 +203,9 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       #
       mw_max <- (adjust + light)
       #
-      if(length(data@qsip@density)==1) {
+      if(calc_w_density) {
         excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
-      } else if(length(data@qsip@int_std_label)==1) {
+      } else if(calc_w_int_std) {
         excess <- ((label - light) * npf) / tot_label_neutron
       }
       #
@@ -224,7 +227,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
   } else if(ci_method=='bootstrap') {
     # Calc WADs
     data <- suppressWarnings(calc_wad(data, filter=filter, rel_abund=rel_abund))
-    if(length(data@qsip@density)==1) ft <- data@qsip[['wad']] else ft <- data@qsip[['waf']]
+    if(calc_w_density) ft <- data@qsip[['wad']] else ft <- data@qsip[['waf']]
     if(phyloseq::taxa_are_rows(data)) ft <- t(ft)
     n_taxa <- ncol(ft)
     tax_names <- colnames(ft)
@@ -261,7 +264,8 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
       ft_i <- mapply(function(x, y) x[y,,drop=FALSE], ft, subsample_i, SIMPLIFY=FALSE)
       ft_i <- recombine_in_order(ft_i, iso_group, n_taxa)
       rownames(ft_i) <- sam_names
-      if(length(data@qsip@density)==1) {
+      #
+      if(calc_w_density) {
         data <- suppressWarnings(collate_results(data, ft_i, tax_names=tax_names, 'wad', sparse=TRUE))
         data <- suppressWarnings(calc_mw(data,
                                          separate_light=FALSE,
@@ -270,7 +274,8 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
                                          recalc=FALSE))
         label <- data@qsip[['mw_label']]
         light <- data@qsip[['mw_light']]
-      } else if(length(data@qsip@int_std_label)==1) {
+        #
+      } else if(calc_w_int_std) {
         data <- suppressWarnings(collate_results(data, ft_i, tax_names=tax_names, 'waf', sparse=TRUE))
         data <- suppressWarnings(calc_d_waf(data,
                                             separate_light=FALSE,
@@ -280,14 +285,15 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         label <- data@qsip[['waf_label']]
         light <- data@qsip[['waf_light']]
       }
+      #
       if(phyloseq::taxa_are_rows(data)) {
         if(is.matrix(label)) label <- t(label)
         if(is.matrix(light)) light <- t(light)
       }
       # atom excess (light/label values should be the same dimensions)
-      if(length(data@qsip@density)==1) {
+      if(calc_w_density) {
         excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
-      } else if(length(data@qsip@int_std_label)==1) {
+      } else if(calc_w_int_std) {
         excess <- ((label - light) * npf) / tot_label_neutron
       }
       # adjust for differences maximum possible labeling
@@ -311,16 +317,25 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
     attributes(data@qsip[['atom_excess']])$calc_method <- output_attr
     attributes(data@qsip[['atom_excess_ci_u']])$calc_method <- output_attr
     #
-    # recalculate WAD, diff_WAD, and MW values (they've been replaced by bootstrapped versions)
-    data <- suppressWarnings(calc_mw(data,
-                                     filter=filter,
-                                     correction=correction,
-                                     offset_taxa=offset_taxa,
-                                     separate_light=separate_light,
-                                     separate_label=separate_label,
-                                     recalc=TRUE))
-    attributes(data@qsip[['mw_label']])$calc_method <- output_attr
-    attributes(data@qsip[['mw_light']])$calc_method <- output_attr
+    # recalculate WAD/WAF/MW values (they've been replaced by bootstrapped versions)
+    if(calc_w_density) {
+      data <- suppressWarnings(calc_mw(data,
+                                       filter=filter,
+                                       correction=correction,
+                                       offset_taxa=offset_taxa,
+                                       separate_light=separate_light,
+                                       separate_label=separate_label,
+                                       recalc=TRUE))
+      #
+    } else if(calc_w_int_std) {
+      data <- suppressWarnings(calc_d_waf(data,
+                                          filter=filter,
+                                          correction=correction,
+                                          offset_taxa=offset_taxa,
+                                          separate_light=separate_light,
+                                          separate_label=separate_label,
+                                          recalc=TRUE))
+    }
     return(data)
   }
 }
