@@ -390,7 +390,7 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
     # separate samples based on timepoint, keeping only valid samples
     # if matching replicates, re-order and match according to replicate number
     if(separate_time && length(data@qsip@rep_num)==1) {
-      ft <- valid_samples(data, ft, 'time', separate_time=TRUE)
+      ft <- valid_samples(data, ft, 'time')
       time_group <- ft[[2]]; ft <- ft[[1]]
     } else{
       ft <- valid_samples(data, ft, 'time')
