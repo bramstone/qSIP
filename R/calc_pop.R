@@ -389,8 +389,8 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
 
     # separate samples based on timepoint, keeping only valid samples
     # if matching replicates, re-order and match according to replicate number
-    if(separate_t0 && length(data@qsip@rep_num)==1) {
-      ft <- valid_samples(data, ft, 'time', separate_t0=TRUE)
+    if(separate_time && length(data@qsip@rep_num)==1) {
+      ft <- valid_samples(data, ft, 'time', separate_time=TRUE)
       time_group <- ft[[2]]; ft <- ft[[1]]
     } else{
       ft <- valid_samples(data, ft, 'time')
@@ -411,7 +411,7 @@ calc_pop <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=999, 
       ft <- ft[match(time_group2$interaction, names(ft))]
       nt_0 <- ft[as.numeric(time_group2$time)==1]
       # average time 0 only if not matching abundances to each replicate across incubation
-      if(!separate_t0) {
+      if(!separate_time) {
         nt_0 <- base::lapply(nt_0, colMeans, na.rm=TRUE)
       }
       ft[as.numeric(time_group2$time)==1] <- nt_0
