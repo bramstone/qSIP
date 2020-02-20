@@ -118,6 +118,7 @@ calc_d_waf <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, se
           shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
           wh <- wh - shift
         }
+        shift <- sweep(wl, 2, wh, function(wL, wH) wH - wL)
         #
       }
     } else if(separate_label) {
@@ -133,6 +134,7 @@ calc_d_waf <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, se
           shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
           wh <- wh - shift
         }
+        shift <- sweep(wh, 2, wl, '-')
         #
         # ...........................................
       } else if(separate_light) { # CODE 011
@@ -243,6 +245,7 @@ calc_d_waf <- function(data, filter=FALSE, correction=FALSE, offset_taxa=0.1, se
           shift <- median(shift[1:floor(offset_taxa * length(shift))], na.rm=T)
           wh <- wh - shift
         }
+        shift <- wh - wl
         #
       }
     }
