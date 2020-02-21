@@ -172,7 +172,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
           max_diff <- mw_max - light
           excess <- sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund)
         } else if(calc_w_int_std) {
-          obs_diff <- obs_diff * -1  # reverse since fraction numbers are reverse of isotope enrichment
+          obs_diff <- -obs_diff  # reverse since fraction numbers are reverse of isotope enrichment
           excess <- (obs_diff * npf) / neutron_per_bp
         }
         #
@@ -194,7 +194,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
           excess <- Map(function(obs_diff, max_diff) sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund), obs_diff, max_diff)
           excess <- do.call(rbind, excess)
         } else if(calc_w_int_std) {
-          obs_diff <- obs_diff * -1  # reverse since fraction numbers are reverse of isotope enrichment
+          obs_diff <- -obs_diff  # reverse since fraction numbers are reverse of isotope enrichment
           excess <- (obs_diff * npf) / neutron_per_bp
         }
         #
@@ -207,7 +207,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         mw_max <- adjust + light
         excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
       } else if(calc_w_int_std) {
-        excess <- (((label - light)*-1) * npf) / neutron_per_bp   # reverse since fraction numbers are reverse of isotope enrichment
+        excess <- (-(label - light) * npf) / neutron_per_bp   # reverse since fraction numbers are reverse of isotope enrichment
       }
       #
       # adjust for maximum possible labeling
