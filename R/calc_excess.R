@@ -191,7 +191,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         #
         if(calc_w_density) {
           max_diff <- base::Map('-', mw_max, light)
-          excess <- Map(function(obs_diff, max_diff) sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund), obs_diff, max_diff)
+          excess <- base::Map(function(obs_diff, max_diff) sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund), obs_diff, max_diff)
           excess <- do.call(rbind, excess)
         } else if(calc_w_int_std) {
           obs_diff <- -obs_diff  # reverse since fraction numbers are reverse of isotope enrichment
