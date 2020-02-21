@@ -165,14 +165,14 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
     if(separate_label && !separate_light) {
       if(length(data@qsip@rep_group)==0) { # CODE 010
         #
+        obs_diff <- sweep(label, 2, light)
         #
         if(calc_w_density) {
           mw_max <- (adjust + light)
           max_diff <- mw_max - light
-          obs_diff <- sweep(label, 2, light)
           excess <- sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund)
         } else if(calc_w_int_std) {
-          obs_diff <- sweep(label, 2, light, function(lab, lit) (lit - lab))
+          obs_diff <- obs_diff * -1  # reverse since fraction numbers are reverse of isotope enrichment
           excess <- (obs_diff * npf) / neutron_per_bp
         }
         #
@@ -187,14 +187,14 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         light <- split_data(data, light, rownames(light), grouping_w_phylosip=FALSE, keep_names=0)
         mw_max <- split_data(data, mw_max, rownames(mw_max), grouping_w_phylosip=FALSE, keep_names=0)
         #
+        obs_diff <- base::Map(function(lab, lit) sweep(lab, 2, lit), label, light)
         #
         if(calc_w_density) {
           max_diff <- base::Map('-', mw_max, light)
-          obs_diff <- base::Map(function(lab, lit) sweep(lab, 2, lit), label, light)
           excess <- Map(function(obs_diff, max_diff) sweep(obs_diff, 2, max_diff, '/') * (1 - nat_abund), obs_diff, max_diff)
           excess <- do.call(rbind, excess)
         } else if(calc_w_int_std) {
-          obs_diff <- base::Map(function(lab, lit) sweep(lab, 2, lit, function(lab, lit) (lit - lab)), label, light)
+          obs_diff <- obs_diff * -1  # reverse since fraction numbers are reverse of isotope enrichment
           excess <- (obs_diff * npf) / neutron_per_bp
         }
         #
@@ -207,7 +207,7 @@ calc_excess <- function(data, ci_method=c('none', 'bootstrap'), ci=.95, iters=99
         mw_max <- adjust + light
         excess <- ((label - light)/(mw_max - light)) * (1 - nat_abund)
       } else if(calc_w_int_std) {
-        excess <- ((light - label) * npf) / neutron_per_bp # (light - label) because fraction numbers are reversed
+        excess <- (((label - light)*-1) * npf) / neutron_per_bp   # reverse since fraction numbers are reverse of isotope enrichment
       }
       #
       # adjust for maximum possible labeling
